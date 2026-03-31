@@ -148,10 +148,12 @@ export const AmortizationSchedule: React.FC<AmortizationScheduleProps> = ({
       }
       
       const endingBalance = beginningBalance - principalForMonth;
-      const paymentDate = new Date(baseDateForPayments);
-      paymentDate.setMonth(baseDateForPayments.getMonth() + month);
-      if (paymentDate.getDate() !== startDayNum) paymentDate.setDate(0); 
-
+      const targetMonth = baseDateForPayments.getMonth() + month;
+      const paymentDate = new Date(baseDateForPayments.getFullYear(), targetMonth, startDayNum);
+      // If the day doesn't exist in the target month (e.g., Jan 31st -> Feb 31st), roll back to the last day of the intended month
+      if (paymentDate.getMonth() !== (targetMonth % 12)) {
+        paymentDate.setDate(0);
+      }
       schedule.push({
         month,
         paymentDate: formatDateToYYYYMMDD(paymentDate),

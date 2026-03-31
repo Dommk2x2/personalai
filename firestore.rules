@@ -166,6 +166,17 @@ service cloud.firestore {
              (!('deletedAt' in data) || (data.deletedAt is string && data.deletedAt.size() < 50));
     }
 
+    function isValidAmortizationEntry(entry) {
+      return entry.keys().hasAll(['month', 'paymentDate', 'beginningBalance', 'emi', 'principalPaid', 'interestPaid', 'endingBalance']) &&
+             entry.month is number &&
+             entry.paymentDate is string && entry.paymentDate.size() < 50 &&
+             entry.beginningBalance is number &&
+             entry.emi is number &&
+             entry.principalPaid is number &&
+             entry.interestPaid is number &&
+             entry.endingBalance is number;
+    }
+
     function isValidSavedAmortizationSchedule() {
       let data = request.resource.data;
       return hasOnlyAllowedFields(['id', 'accountId', 'loanName', 'principal', 'annualRate', 'tenureValue', 'tenureUnit', 'startDate', 'calculatedEmi', 'totalInterest', 'totalPayment', 'createdAt', 'isDeleted', 'deletedAt', 'productImage', 'completionGreeting', 'schedule', 'paymentStatus']) &&

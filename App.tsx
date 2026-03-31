@@ -834,10 +834,12 @@ const App: React.FC = () => {
             } else {
               newStatus[index + 1] = false;
               // Re-calculate planned date for this month
-              const plannedDate = new Date(startDate);
-              plannedDate.setMonth(startDate.getMonth() + (index + 1));
-              // Adjust for month end if needed
-              if (plannedDate.getDate() !== startDayNum) plannedDate.setDate(0);
+              const targetMonth = startDate.getMonth() + (index + 1);
+              const plannedDate = new Date(startDate.getFullYear(), targetMonth, startDayNum);
+              // If the day doesn't exist in the target month (e.g., Jan 31st -> Feb 31st), roll back to the last day of the intended month
+              if (plannedDate.getMonth() !== (targetMonth % 12)) {
+                plannedDate.setDate(0);
+              }
               newSchedule[index] = { ...entry, paymentDate: formatDateToYYYYMMDD(plannedDate) };
             }
           });
