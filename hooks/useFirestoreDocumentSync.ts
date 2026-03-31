@@ -1,6 +1,6 @@
 import { useState, useEffect, Dispatch, SetStateAction, useCallback } from 'react';
 import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
-import { db, auth, handleFirestoreError, OperationType } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType, sanitizeData } from '../firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
 export function useFirestoreDocumentSync<T>(
@@ -44,9 +44,9 @@ export function useFirestoreDocumentSync<T>(
         try {
           if (localData) {
             console.log(`Migrating local data to Firestore document ${documentPath}`);
-            await setDoc(docRef, { value: JSON.parse(localData) });
+            await setDoc(docRef, sanitizeData({ value: JSON.parse(localData) }));
           } else {
-            await setDoc(docRef, { value: initialValue });
+            await setDoc(docRef, sanitizeData({ value: initialValue }));
           }
         } catch (error) {
           handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}/${documentPath}`);
@@ -83,7 +83,7 @@ export function useFirestoreDocumentSync<T>(
       if (user) {
         const syncToFirestore = async () => {
           try {
-            await setDoc(doc(db, `users/${user.uid}/${documentPath}`), { value: next });
+            await setDoc(doc(db, `users/${user.uid}/${documentPath}`), sanitizeData({ value: next }));
           } catch (error) {
             handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}/${documentPath}`);
           }

@@ -60,3 +60,25 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
+
+/**
+ * Recursively removes undefined values from an object.
+ * Firestore does not support undefined values.
+ */
+export function sanitizeData(data: any): any {
+  if (data === null || typeof data !== 'object') {
+    return data;
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(sanitizeData);
+  }
+
+  const sanitized: any = {};
+  for (const key in data) {
+    if (data[key] !== undefined) {
+      sanitized[key] = sanitizeData(data[key]);
+    }
+  }
+  return sanitized;
+}

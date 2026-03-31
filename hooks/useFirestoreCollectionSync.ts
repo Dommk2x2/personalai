@@ -1,6 +1,6 @@
 import { useState, useEffect, Dispatch, SetStateAction, useCallback } from 'react';
 import { collection, onSnapshot, doc, writeBatch, setDoc, deleteDoc } from 'firebase/firestore';
-import { db, auth, handleFirestoreError, OperationType } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType, sanitizeData } from '../firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
 export function useFirestoreCollectionSync<T>(
@@ -59,7 +59,7 @@ export function useFirestoreCollectionSync<T>(
               chunk.forEach(item => {
                 const docId = getId(item) || Math.random().toString(36).substring(2, 15);
                 const docRef = doc(db, `users/${user.uid}/${collectionName}`, docId);
-                batch.set(docRef, item);
+                batch.set(docRef, sanitizeData(item));
               });
               await batch.commit();
             }
@@ -114,7 +114,7 @@ export function useFirestoreCollectionSync<T>(
             // Process in batches if needed, but usually single updates
             for (const item of addedOrUpdated) {
               const docId = getId(item) || Math.random().toString(36).substring(2, 15);
-              await setDoc(doc(db, `users/${user.uid}/${collectionName}`, docId), item);
+              await setDoc(doc(db, `users/${user.uid}/${collectionName}`, docId), sanitizeData(item));
             }
             for (const item of deleted) {
               const docId = getId(item);
