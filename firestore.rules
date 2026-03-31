@@ -36,7 +36,8 @@ service cloud.firestore {
 
     function isValidTransaction() {
       let data = request.resource.data;
-      return hasOnlyAllowedFields(['id', 'accountId', 'type', 'description', 'amount', 'date', 'category', 'validityDays', 'emiId', 'isFullEmiPayment', 'transferId', 'isDeleted', 'deletedAt', 'createdAt', 'cashbackAmount', 'couponUsed', 'couponIncomeId', 'items', 'attachment', 'denominations']) &&
+      let allowedFields = ['id', 'accountId', 'type', 'description', 'amount', 'date', 'category', 'validityDays', 'emiId', 'isFullEmiPayment', 'transferId', 'isDeleted', 'deletedAt', 'createdAt', 'cashbackAmount', 'couponUsed', 'couponIncomeId', 'items', 'attachment', 'denominations', 'setReminder', 'reminderDate'];
+      return hasOnlyAllowedFields(allowedFields) &&
              data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
              data.accountId is string && data.accountId.size() > 0 && data.accountId.size() < 100 &&
              data.type in ['income', 'expense', 'transfer'] &&
@@ -56,7 +57,9 @@ service cloud.firestore {
              (!('couponIncomeId' in data) || (data.couponIncomeId is string && data.couponIncomeId.size() < 100)) &&
              (!('items' in data) || (data.items is list && data.items.size() < 100)) &&
              (!('attachment' in data) || (data.attachment is map && data.attachment.keys().hasOnly(['name', 'type', 'data']))) &&
-             (!('denominations' in data) || (data.denominations is map && data.denominations.size() < 20));
+             (!('denominations' in data) || (data.denominations is map && data.denominations.size() < 20)) &&
+             (!('setReminder' in data) || data.setReminder is bool) &&
+             (!('reminderDate' in data) || (data.reminderDate is string && data.reminderDate.size() < 50));
     }
 
     function isValidBudgetSetting() {
@@ -310,6 +313,10 @@ service cloud.firestore {
       match /settings/{document=**} {
         allow read, write: if isOwner(userId);
       }
+    }
+
+    match /test/connection {
+      allow read: if true;
     }
   }
 }

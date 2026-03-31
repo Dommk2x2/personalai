@@ -287,10 +287,15 @@ const App: React.FC = () => {
     // Test Firestore connection
     async function testConnection() {
       try {
+        console.log("Testing Firestore connection...");
         await getDocFromServer(doc(db, 'test', 'connection'));
+        console.log("Firestore connection successful.");
       } catch (error) {
+        console.error("Firestore connection test failed:", error);
         if(error instanceof Error && error.message.includes('the client is offline')) {
-          console.error("Please check your Firebase configuration. ");
+          console.error("Please check your Firebase configuration. The client is offline.");
+        } else if (error instanceof Error && error.message.includes('permission-denied')) {
+          console.error("Permission denied to test connection. Check firestore.rules.");
         }
       }
     }
