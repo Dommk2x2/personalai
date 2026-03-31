@@ -1,0 +1,315 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidAccount() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['id', 'name', 'createdAt', 'accountNumber', 'ifscCode', 'isDeleted', 'deletedAt', 'userId', 'initialBalance']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.createdAt is string && data.createdAt.size() < 50 &&
+             (!('accountNumber' in data) || (data.accountNumber is string && data.accountNumber.size() < 50)) &&
+             (!('ifscCode' in data) || (data.ifscCode is string && data.ifscCode.size() < 20)) &&
+             (!('isDeleted' in data) || data.isDeleted is bool) &&
+             (!('deletedAt' in data) || (data.deletedAt is string && data.deletedAt.size() < 50)) &&
+             (!('userId' in data) || (data.userId is string && data.userId.size() < 100)) &&
+             (!('initialBalance' in data) || data.initialBalance is number);
+    }
+
+    function isValidTransaction() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['id', 'accountId', 'type', 'description', 'amount', 'date', 'category', 'validityDays', 'emiId', 'isFullEmiPayment', 'transferId', 'isDeleted', 'deletedAt', 'createdAt', 'cashbackAmount', 'couponUsed', 'couponIncomeId', 'items', 'attachment', 'denominations']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.accountId is string && data.accountId.size() > 0 && data.accountId.size() < 100 &&
+             data.type in ['income', 'expense', 'transfer'] &&
+             data.description is string && data.description.size() <= 1000 &&
+             data.amount is number &&
+             data.date is string && data.date.size() > 0 && data.date.size() < 50 &&
+             (!('category' in data) || (data.category is string && data.category.size() < 100)) &&
+             (!('validityDays' in data) || data.validityDays is number) &&
+             (!('emiId' in data) || (data.emiId is string && data.emiId.size() < 100)) &&
+             (!('isFullEmiPayment' in data) || data.isFullEmiPayment is bool) &&
+             (!('transferId' in data) || (data.transferId is string && data.transferId.size() < 100)) &&
+             (!('isDeleted' in data) || data.isDeleted is bool) &&
+             (!('deletedAt' in data) || (data.deletedAt is string && data.deletedAt.size() < 50)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() < 50)) &&
+             (!('cashbackAmount' in data) || data.cashbackAmount is number) &&
+             (!('couponUsed' in data) || data.couponUsed is number) &&
+             (!('couponIncomeId' in data) || (data.couponIncomeId is string && data.couponIncomeId.size() < 100)) &&
+             (!('items' in data) || (data.items is list && data.items.size() < 100)) &&
+             (!('attachment' in data) || (data.attachment is map && data.attachment.keys().hasOnly(['name', 'type', 'data']))) &&
+             (!('denominations' in data) || (data.denominations is map && data.denominations.size() < 20));
+    }
+
+    function isValidBudgetSetting() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['accountId', 'category', 'allocated', 'period', 'periodIdentifier']) &&
+             data.accountId is string && data.accountId.size() < 100 &&
+             data.category is string && data.category.size() < 100 &&
+             data.allocated is number &&
+             data.period is string && data.period.size() < 50 &&
+             data.periodIdentifier is string && data.periodIdentifier.size() < 50;
+    }
+
+    function isValidUserCredential() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['id', 'username', 'password', 'role', 'isDeleted', 'deletedAt']) &&
+             data.id is string && data.id.size() < 100 &&
+             data.username is string && data.username.size() < 100 &&
+             data.password is string && data.password.size() < 100 &&
+             data.role in ['admin', 'user'] &&
+             (!('isDeleted' in data) || data.isDeleted is bool) &&
+             (!('deletedAt' in data) || (data.deletedAt is string && data.deletedAt.size() < 50));
+    }
+
+    function isValidTodoItem() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['id', 'accountId', 'text', 'completed', 'createdAt', 'isDeleted', 'deletedAt', 'reminderDateTime']) &&
+             data.id is string && data.id.size() < 100 &&
+             data.accountId is string && data.accountId.size() < 100 &&
+             data.text is string && data.text.size() <= 1000 &&
+             data.completed is bool &&
+             data.createdAt is string && data.createdAt.size() < 50 &&
+             (!('isDeleted' in data) || data.isDeleted is bool) &&
+             (!('deletedAt' in data) || (data.deletedAt is string && data.deletedAt.size() < 50)) &&
+             (!('reminderDateTime' in data) || (data.reminderDateTime is string && data.reminderDateTime.size() < 50));
+    }
+
+    function isValidDayPlannerEntry() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['id', 'accountId', 'title', 'notes', 'date', 'startTime', 'endTime', 'completed', 'createdAt', 'isDeleted', 'deletedAt', 'reminderDateTime']) &&
+             data.id is string && data.id.size() < 100 &&
+             data.accountId is string && data.accountId.size() < 100 &&
+             data.title is string && data.title.size() < 200 &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000)) &&
+             data.date is string && data.date.size() < 50 &&
+             data.startTime is string && data.startTime.size() < 50 &&
+             data.endTime is string && data.endTime.size() < 50 &&
+             data.completed is bool &&
+             data.createdAt is string && data.createdAt.size() < 50 &&
+             (!('isDeleted' in data) || data.isDeleted is bool) &&
+             (!('deletedAt' in data) || (data.deletedAt is string && data.deletedAt.size() < 50)) &&
+             (!('reminderDateTime' in data) || (data.reminderDateTime is string && data.reminderDateTime.size() < 50));
+    }
+
+    function isValidSubscriptionPlan() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['id', 'accountId', 'name', 'provider', 'price', 'validityDays', 'lastPaymentDate', 'nextDueDate', 'isDeleted', 'deletedAt']) &&
+             data.id is string && data.id.size() < 100 &&
+             data.accountId is string && data.accountId.size() < 100 &&
+             data.name is string && data.name.size() < 100 &&
+             data.provider is string && data.provider.size() < 100 &&
+             data.price is number &&
+             data.validityDays is number &&
+             data.lastPaymentDate is string && data.lastPaymentDate.size() < 50 &&
+             data.nextDueDate is string && data.nextDueDate.size() < 50 &&
+             (!('isDeleted' in data) || data.isDeleted is bool) &&
+             (!('deletedAt' in data) || (data.deletedAt is string && data.deletedAt.size() < 50));
+    }
+
+    function isValidRechargePlan() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['id', 'accountId', 'provider', 'price', 'validityDays', 'lastRechargeDate', 'nextDueDate', 'isDeleted', 'deletedAt']) &&
+             data.id is string && data.id.size() < 100 &&
+             data.accountId is string && data.accountId.size() < 100 &&
+             data.provider is string && data.provider.size() < 100 &&
+             data.price is number &&
+             data.validityDays is number &&
+             data.lastRechargeDate is string && data.lastRechargeDate.size() < 50 &&
+             data.nextDueDate is string && data.nextDueDate.size() < 50 &&
+             (!('isDeleted' in data) || data.isDeleted is bool) &&
+             (!('deletedAt' in data) || (data.deletedAt is string && data.deletedAt.size() < 50));
+    }
+
+    function isValidMenuItem() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['id', 'accountId', 'name', 'price', 'isDeleted', 'deletedAt']) &&
+             data.id is string && data.id.size() < 100 &&
+             data.accountId is string && data.accountId.size() < 100 &&
+             data.name is string && data.name.size() < 100 &&
+             data.price is number &&
+             (!('isDeleted' in data) || data.isDeleted is bool) &&
+             (!('deletedAt' in data) || (data.deletedAt is string && data.deletedAt.size() < 50));
+    }
+
+    function isValidVaultItem() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['id', 'name', 'date', 'dataUrl', 'mimeType', 'isPrivate', 'isDeleted', 'deletedAt']) &&
+             data.id is string && data.id.size() < 100 &&
+             data.name is string && data.name.size() < 200 &&
+             data.date is string && data.date.size() < 50 &&
+             data.dataUrl is string && data.dataUrl.size() < 1048576 && // 1MB limit for dataUrl
+             data.mimeType is string && data.mimeType.size() < 100 &&
+             data.isPrivate is bool &&
+             (!('isDeleted' in data) || data.isDeleted is bool) &&
+             (!('deletedAt' in data) || (data.deletedAt is string && data.deletedAt.size() < 50));
+    }
+
+    function isValidSavedAmortizationSchedule() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['id', 'accountId', 'loanName', 'principal', 'annualRate', 'tenureValue', 'tenureUnit', 'startDate', 'calculatedEmi', 'totalInterest', 'totalPayment', 'createdAt', 'isDeleted', 'deletedAt', 'productImage', 'completionGreeting', 'schedule', 'paymentStatus']) &&
+             data.id is string && data.id.size() < 100 &&
+             data.accountId is string && data.accountId.size() < 100 &&
+             data.loanName is string && data.loanName.size() < 200 &&
+             data.principal is number &&
+             data.annualRate is number &&
+             data.tenureValue is number &&
+             data.tenureUnit in ['years', 'months'] &&
+             data.startDate is string && data.startDate.size() < 50 &&
+             data.calculatedEmi is number &&
+             data.totalInterest is number &&
+             data.totalPayment is number &&
+             data.createdAt is string && data.createdAt.size() < 50 &&
+             (!('isDeleted' in data) || data.isDeleted is bool) &&
+             (!('deletedAt' in data) || (data.deletedAt is string && data.deletedAt.size() < 50)) &&
+             (!('productImage' in data) || (data.productImage is string && data.productImage.size() < 1048576)) &&
+             (!('completionGreeting' in data) || (data.completionGreeting is string && data.completionGreeting.size() < 500)) &&
+             (!('schedule' in data) || (data.schedule is list && data.schedule.size() < 1000)) &&
+             (!('paymentStatus' in data) || (data.paymentStatus is map && data.paymentStatus.size() < 1000));
+    }
+
+    function isValidAttendanceEntry() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['date', 'status', 'notes']) &&
+             data.date is string && data.date.size() < 50 &&
+             data.status is string && data.status.size() < 50 &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000));
+    }
+
+    function isValidAttendanceHistoryEntry() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['id', 'timestamp', 'dateOfAttendance', 'actionType', 'previousStatus', 'newStatus', 'previousNotes', 'newNotes']) &&
+             data.id is string && data.id.size() < 100 &&
+             data.timestamp is number &&
+             data.dateOfAttendance is string && data.dateOfAttendance.size() < 50 &&
+             data.actionType is string && data.actionType.size() < 50 &&
+             (!('previousStatus' in data) || (data.previousStatus is string && data.previousStatus.size() < 50)) &&
+             data.newStatus is string && data.newStatus.size() < 50 &&
+             (!('previousNotes' in data) || (data.previousNotes is string && data.previousNotes.size() <= 1000)) &&
+             (!('newNotes' in data) || (data.newNotes is string && data.newNotes.size() <= 1000));
+    }
+
+    function isValidSalaryDeduction() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['id', 'name', 'amount']) &&
+             data.id is string && data.id.size() < 100 &&
+             data.name is string && data.name.size() < 100 &&
+             data.amount is number;
+    }
+
+    function isValidFestiveDate() {
+      let data = request.resource.data;
+      return hasOnlyAllowedFields(['id', 'date', 'name', 'createdAt']) &&
+             data.id is string && data.id.size() < 100 &&
+             data.date is string && data.date.size() < 50 &&
+             data.name is string && data.name.size() < 100 &&
+             data.createdAt is string && data.createdAt.size() < 50;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      
+      match /accounts/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidAccount();
+        allow delete: if isOwner(userId);
+      }
+      match /transactions/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidTransaction();
+        allow delete: if isOwner(userId);
+      }
+      match /budgetSettings/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidBudgetSetting();
+        allow delete: if isOwner(userId);
+      }
+      match /userCredentials/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidUserCredential();
+        allow delete: if isOwner(userId);
+      }
+      match /todos/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidTodoItem();
+        allow delete: if isOwner(userId);
+      }
+      match /dayPlannerEntries/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidDayPlannerEntry();
+        allow delete: if isOwner(userId);
+      }
+      match /subscriptionPlans/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidSubscriptionPlan();
+        allow delete: if isOwner(userId);
+      }
+      match /rechargePlans/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidRechargePlan();
+        allow delete: if isOwner(userId);
+      }
+      match /menuItems/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidMenuItem();
+        allow delete: if isOwner(userId);
+      }
+      match /vaultItems/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidVaultItem();
+        allow delete: if isOwner(userId);
+      }
+      match /savedAmortizationSchedules/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidSavedAmortizationSchedule();
+        allow delete: if isOwner(userId);
+      }
+      match /attendanceEntries/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidAttendanceEntry();
+        allow delete: if isOwner(userId);
+      }
+      match /attendanceHistory/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidAttendanceHistoryEntry();
+        allow delete: if isOwner(userId);
+      }
+      match /salaryDeductions/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidSalaryDeduction();
+        allow delete: if isOwner(userId);
+      }
+      match /festiveDates/{document=**} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidFestiveDate();
+        allow delete: if isOwner(userId);
+      }
+      
+      // Settings collection
+      match /settings/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}

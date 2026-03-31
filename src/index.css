@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  --font-digital-7: "DSEG7Classic-Bold", monospace;
+  --color-brand-primary: var(--color-brand-primary);
+  --color-brand-secondary: var(--color-brand-secondary);
+  --color-income: var(--color-income);
+  --color-expense: var(--color-expense);
+  --color-bg-primary-themed: var(--color-bg-primary);
+  --color-bg-secondary-themed: var(--color-bg-secondary);
+  --color-bg-accent-themed: var(--color-bg-accent);
+  --color-text-base-themed: var(--color-text-base);
+  --color-text-muted-themed: var(--color-text-muted);
+  --color-border-primary: var(--color-border-primary);
+  --color-border-secondary: var(--color-border-secondary);
+  --color-border-focus: var(--color-border-focus);
+}

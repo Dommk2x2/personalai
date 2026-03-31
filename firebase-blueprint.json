@@ -1,0 +1,310 @@
+{
+  "entities": {
+    "Account": {
+      "title": "Account",
+      "description": "User financial account",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "accountNumber": { "type": "string" },
+        "ifscCode": { "type": "string" },
+        "isDeleted": { "type": "boolean" },
+        "deletedAt": { "type": "string" },
+        "userId": { "type": "string" },
+        "initialBalance": { "type": "number" }
+      },
+      "required": ["id", "name", "createdAt"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Financial transaction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "accountId": { "type": "string" },
+        "type": { "type": "string", "enum": ["income", "expense", "transfer"] },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "category": { "type": "string" },
+        "validityDays": { "type": "number" },
+        "emiId": { "type": "string" },
+        "isFullEmiPayment": { "type": "boolean" },
+        "transferId": { "type": "string" },
+        "isDeleted": { "type": "boolean" },
+        "deletedAt": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "cashbackAmount": { "type": "number" },
+        "couponUsed": { "type": "number" },
+        "couponIncomeId": { "type": "string" }
+      },
+      "required": ["id", "accountId", "type", "description", "amount", "date"]
+    },
+    "BudgetSetting": {
+      "title": "BudgetSetting",
+      "description": "Budget settings for categories",
+      "type": "object",
+      "properties": {
+        "accountId": { "type": "string" },
+        "category": { "type": "string" },
+        "allocated": { "type": "number" },
+        "period": { "type": "string" },
+        "periodIdentifier": { "type": "string" }
+      },
+      "required": ["accountId", "category", "allocated", "period", "periodIdentifier"]
+    },
+    "UserCredential": {
+      "title": "UserCredential",
+      "description": "User credentials and roles",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "isDeleted": { "type": "boolean" },
+        "deletedAt": { "type": "string" }
+      },
+      "required": ["id", "username", "password", "role"]
+    },
+    "TodoItem": {
+      "title": "TodoItem",
+      "description": "To-do list items",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "accountId": { "type": "string" },
+        "text": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "isDeleted": { "type": "boolean" },
+        "deletedAt": { "type": "string" },
+        "reminderDateTime": { "type": "string" }
+      },
+      "required": ["id", "accountId", "text", "completed", "createdAt"]
+    },
+    "DayPlannerEntry": {
+      "title": "DayPlannerEntry",
+      "description": "Day planner schedule entries",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "accountId": { "type": "string" },
+        "title": { "type": "string" },
+        "notes": { "type": "string" },
+        "date": { "type": "string" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "isDeleted": { "type": "boolean" },
+        "deletedAt": { "type": "string" },
+        "reminderDateTime": { "type": "string" }
+      },
+      "required": ["id", "accountId", "title", "date", "startTime", "endTime", "completed", "createdAt"]
+    },
+    "SubscriptionPlan": {
+      "title": "SubscriptionPlan",
+      "description": "Subscription tracking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "accountId": { "type": "string" },
+        "name": { "type": "string" },
+        "provider": { "type": "string" },
+        "price": { "type": "number" },
+        "validityDays": { "type": "number" },
+        "lastPaymentDate": { "type": "string" },
+        "nextDueDate": { "type": "string" },
+        "isDeleted": { "type": "boolean" },
+        "deletedAt": { "type": "string" }
+      },
+      "required": ["id", "accountId", "name", "provider", "price", "validityDays", "lastPaymentDate", "nextDueDate"]
+    },
+    "RechargePlan": {
+      "title": "RechargePlan",
+      "description": "Recharge tracking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "accountId": { "type": "string" },
+        "provider": { "type": "string" },
+        "price": { "type": "number" },
+        "validityDays": { "type": "number" },
+        "lastRechargeDate": { "type": "string" },
+        "nextDueDate": { "type": "string" },
+        "isDeleted": { "type": "boolean" },
+        "deletedAt": { "type": "string" }
+      },
+      "required": ["id", "accountId", "provider", "price", "validityDays", "lastRechargeDate", "nextDueDate"]
+    },
+    "MenuItem": {
+      "title": "MenuItem",
+      "description": "Menu items for quick entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "accountId": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "isDeleted": { "type": "boolean" },
+        "deletedAt": { "type": "string" }
+      },
+      "required": ["id", "accountId", "name", "price"]
+    },
+    "VaultItem": {
+      "title": "VaultItem",
+      "description": "Secure document vault items",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "date": { "type": "string" },
+        "dataUrl": { "type": "string" },
+        "mimeType": { "type": "string" },
+        "isPrivate": { "type": "boolean" },
+        "isDeleted": { "type": "boolean" },
+        "deletedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "date", "dataUrl", "mimeType", "isPrivate"]
+    },
+    "SavedAmortizationSchedule": {
+      "title": "SavedAmortizationSchedule",
+      "description": "Saved EMI schedules",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "accountId": { "type": "string" },
+        "loanName": { "type": "string" },
+        "principal": { "type": "number" },
+        "annualRate": { "type": "number" },
+        "tenureValue": { "type": "number" },
+        "tenureUnit": { "type": "string", "enum": ["years", "months"] },
+        "startDate": { "type": "string" },
+        "calculatedEmi": { "type": "number" },
+        "totalInterest": { "type": "number" },
+        "totalPayment": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "isDeleted": { "type": "boolean" },
+        "deletedAt": { "type": "string" },
+        "productImage": { "type": "string" },
+        "completionGreeting": { "type": "string" }
+      },
+      "required": ["id", "accountId", "loanName", "principal", "annualRate", "tenureValue", "tenureUnit", "startDate", "calculatedEmi", "totalInterest", "totalPayment", "createdAt"]
+    },
+    "AttendanceEntry": {
+      "title": "AttendanceEntry",
+      "description": "Daily attendance log",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string" },
+        "status": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["date", "status"]
+    },
+    "AttendanceHistoryEntry": {
+      "title": "AttendanceHistoryEntry",
+      "description": "History of attendance modifications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "dateOfAttendance": { "type": "string" },
+        "actionType": { "type": "string" },
+        "previousStatus": { "type": "string" },
+        "newStatus": { "type": "string" },
+        "previousNotes": { "type": "string" },
+        "newNotes": { "type": "string" }
+      },
+      "required": ["id", "timestamp", "dateOfAttendance", "actionType", "newStatus"]
+    },
+    "SalaryDeduction": {
+      "title": "SalaryDeduction",
+      "description": "Salary deduction entries",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "amount": { "type": "number" }
+      },
+      "required": ["id", "name", "amount"]
+    },
+    "FestiveDate": {
+      "title": "FestiveDate",
+      "description": "Festive dates for reminders",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "date", "name", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/accounts/{accountId}": {
+      "schema": { "$ref": "#/entities/Account" },
+      "description": "User's financial accounts"
+    },
+    "users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "User's transactions"
+    },
+    "users/{userId}/budgetSettings/{budgetId}": {
+      "schema": { "$ref": "#/entities/BudgetSetting" },
+      "description": "User's budget settings"
+    },
+    "users/{userId}/userCredentials/{credentialId}": {
+      "schema": { "$ref": "#/entities/UserCredential" },
+      "description": "User credentials"
+    },
+    "users/{userId}/todos/{todoId}": {
+      "schema": { "$ref": "#/entities/TodoItem" },
+      "description": "User's to-do items"
+    },
+    "users/{userId}/dayPlannerEntries/{entryId}": {
+      "schema": { "$ref": "#/entities/DayPlannerEntry" },
+      "description": "User's day planner entries"
+    },
+    "users/{userId}/subscriptionPlans/{planId}": {
+      "schema": { "$ref": "#/entities/SubscriptionPlan" },
+      "description": "User's subscription plans"
+    },
+    "users/{userId}/rechargePlans/{planId}": {
+      "schema": { "$ref": "#/entities/RechargePlan" },
+      "description": "User's recharge plans"
+    },
+    "users/{userId}/menuItems/{menuItemId}": {
+      "schema": { "$ref": "#/entities/MenuItem" },
+      "description": "User's menu items"
+    },
+    "users/{userId}/vaultItems/{vaultItemId}": {
+      "schema": { "$ref": "#/entities/VaultItem" },
+      "description": "User's vault items"
+    },
+    "users/{userId}/savedAmortizationSchedules/{scheduleId}": {
+      "schema": { "$ref": "#/entities/SavedAmortizationSchedule" },
+      "description": "User's saved EMI schedules"
+    },
+    "users/{userId}/attendanceEntries/{date}": {
+      "schema": { "$ref": "#/entities/AttendanceEntry" },
+      "description": "User's attendance entries"
+    },
+    "users/{userId}/attendanceHistory/{historyId}": {
+      "schema": { "$ref": "#/entities/AttendanceHistoryEntry" },
+      "description": "User's attendance history"
+    },
+    "users/{userId}/salaryDeductions/{deductionId}": {
+      "schema": { "$ref": "#/entities/SalaryDeduction" },
+      "description": "User's salary deductions"
+    },
+    "users/{userId}/festiveDates/{festiveId}": {
+      "schema": { "$ref": "#/entities/FestiveDate" },
+      "description": "User's festive dates"
+    }
+  }
+}
