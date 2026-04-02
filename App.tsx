@@ -826,21 +826,57 @@ const App: React.FC = () => {
             newSchedule[index] = { ...entry, paymentDate };
           });
         } else {
+          // Pre-calculate planned dates for all months
+          const plannedDates = newSchedule.map((_, i) => {
+            const targetMonth = startDate.getMonth() + (i + 1);
+            const d = new Date(startDate.getFullYear(), targetMonth, startDayNum);
+            if (d.getMonth() !== (targetMonth % 12)) d.setDate(0);
+            return formatDateToYYYYMMDD(d);
+          });
+
+          const monthToTx = new Map<number, Transaction>();
+          
+          // For each transaction, find the closest planned date month that isn't taken
+          emiTx.forEach(tx => {
+            let bestMonthIdx = -1;
+            let minDiff = Infinity;
+            const txTime = new Date(tx.date).getTime();
+
+            plannedDates.forEach((pDateStr, mIdx) => {
+              if (monthToTx.has(mIdx)) return;
+              
+              const diff = Math.abs(txTime - new Date(pDateStr).getTime());
+              if (diff < minDiff) {
+                minDiff = diff;
+                bestMonthIdx = mIdx;
+              }
+            });
+
+            if (bestMonthIdx !== -1) {
+              monthToTx.set(bestMonthIdx, tx);
+            }
+          });
+
+          // Update the schedule based on matched transactions and manual marks
           newSchedule.forEach((entry, index) => {
-            const tx = emiTx[index];
+            const monthNum = index + 1;
+            const tx = monthToTx.get(index);
+            const plannedDateStr = plannedDates[index];
+
             if (tx) {
-              newStatus[index + 1] = true;
+              newStatus[monthNum] = true;
               newSchedule[index] = { ...entry, paymentDate: tx.date };
             } else {
-              newStatus[index + 1] = false;
-              // Re-calculate planned date for this month
-              const targetMonth = startDate.getMonth() + (index + 1);
-              const plannedDate = new Date(startDate.getFullYear(), targetMonth, startDayNum);
-              // If the day doesn't exist in the target month (e.g., Jan 31st -> Feb 31st), roll back to the last day of the intended month
-              if (plannedDate.getMonth() !== (targetMonth % 12)) {
-                plannedDate.setDate(0);
+              // If no transaction matched, check if it was manually marked as paid
+              const wasManuallyMarked = schedule.paymentStatus[monthNum];
+              if (wasManuallyMarked) {
+                newStatus[monthNum] = true;
+                // Keep existing payment date (usually the planned date or whatever the user set)
+                newSchedule[index] = { ...entry, paymentDate: entry.paymentDate };
+              } else {
+                newStatus[monthNum] = false;
+                newSchedule[index] = { ...entry, paymentDate: plannedDateStr };
               }
-              newSchedule[index] = { ...entry, paymentDate: formatDateToYYYYMMDD(plannedDate) };
             }
           });
         }

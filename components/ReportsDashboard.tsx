@@ -294,7 +294,7 @@ const ReportsDashboard: React.FC<ReportsDashboardProps> = (props) => {
             }
 
             return matchesAccount && matchesDate && matchesDeleted && matchesType && matchesCriteria;
-        }).sort((a, b) => b.date.localeCompare(a.date));
+        }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     }, [safeAllTransactions, activeAccount, startDate, endDate, drillDownInfo]);
 
     const dashboardData = useMemo(() => {
@@ -319,7 +319,7 @@ const ReportsDashboard: React.FC<ReportsDashboardProps> = (props) => {
         const monthlyTrend = Object.entries(monthlyMap).map(([m, val]) => ({
             name: new Date(m + '-02').toLocaleString('default', { month: 'short' }),
             value: val
-        })).sort((a,b) => a.name.localeCompare(b.name));
+        })).sort((a,b) => (a.name || '').localeCompare(b.name || ''));
 
         const catMap: Record<string, number> = {};
         (filteredTxs ?? []).filter(t => t.type === 'expense').forEach(tx => {

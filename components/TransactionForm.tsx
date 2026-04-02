@@ -106,6 +106,8 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
   const [showTrends, setShowTrends] = useState(false);
   const [showBudget, setShowBudget] = useState(false);
   const [showPassbookInline, setShowPassbookInline] = useState(false);
+  const [isBudgetedFlipped, setIsBudgetedFlipped] = useState(false);
+  const [isUnbudgetedFlipped, setIsUnbudgetedFlipped] = useState(false);
   
   const filteredTransactions = useMemo(() => {
     const selectedMonth = date.substring(0, 7); // YYYY-MM
@@ -205,7 +207,7 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
     
     const lastMatch = allTransactions
         .filter(tx => !tx.isDeleted && tx.description === desc)
-        .sort((a, b) => b.date.localeCompare(a.date))[0];
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
     
     if (lastMatch) {
         setCategory(lastMatch.category);
@@ -409,6 +411,10 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
 
   const handleEmiSelect = (id: string, fullPayment?: boolean) => {
     setEmiId(id);
+    // User request: "emi trasaction i want to take current date"
+    // When selecting an EMI, default to today's date
+    setDate(formatDateToYYYYMMDD(new Date()));
+    
     const selected = emiSchedules.find(s => s.id === id);
     if (selected) {
         const totalMonths = selected.schedule.length;
@@ -658,7 +664,14 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
                             <div className="relative">
                                 <select 
                                     value={category} 
-                                    onChange={e => setCategory(e.target.value)} 
+                                    onChange={e => {
+                                        const newCat = e.target.value;
+                                        setCategory(newCat);
+                                        // User request: "emi trasaction i want to take current date"
+                                        if (newCat === ExpenseCategory.EMI && type === TransactionType.EXPENSE) {
+                                            setDate(formatDateToYYYYMMDD(new Date()));
+                                        }
+                                    }} 
                                     required 
                                     className={`${inputBaseClasses} appearance-none pr-10`}
                                 >
@@ -822,70 +835,182 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
 
             {summaryData.expenses > 0 && (
                 <div className="mt-4 space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 bg-bg-primary-themed rounded-2xl border border-border-primary">
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="text-[8px] font-black text-text-muted-themed uppercase tracking-widest">Budgeted</span>
-                                <span className="text-[9px] font-bold text-brand-primary">{((summaryData.budgetedExpenses / summaryData.expenses) * 100).toFixed(0)}%</span>
-                            </div>
-                            <div className="text-sm font-black text-text-base-themed flex items-baseline gap-1">
-                                <span>{formatCurrency(summaryData.budgetedExpenses)}</span>
-                                <span className="text-text-muted-themed text-[10px] font-bold">/ {formatCurrency(summaryData.totalBudgetAllocated)}</span>
-                            </div>
-                            <div className="w-full h-1 bg-bg-accent-themed rounded-full mt-2 overflow-hidden">
-                                <div 
-                                    className="h-full bg-brand-primary" 
-                                    style={{ width: `${(summaryData.budgetedExpenses / summaryData.expenses) * 100}%` }}
-                                />
-                            </div>
-                            
-                            {Object.keys(summaryData.budgetedCategoryBreakdown).length > 0 && (
-                                <div className="mt-3 space-y-1.5">
-                                    {Object.entries(summaryData.budgetedCategoryBreakdown).map(([cat, data]: [string, any]) => (
-                                        <div key={cat} className="flex flex-col gap-0.5">
-                                            <div className="flex justify-between items-center text-[9px]">
-                                                <span className="text-text-muted-themed font-bold truncate pr-2">{cat}</span>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-text-base-themed font-black whitespace-nowrap">{formatCurrency(data.spent, 0)}</span>
-                                                    <span className="text-text-muted-themed font-bold">/</span>
-                                                    <span className="text-text-muted-themed font-bold">{formatCurrency(data.allocated, 0)}</span>
-                                                </div>
+            <div className="grid grid-cols-2 gap-3 items-stretch">
+                        {/* Budgeted Card */}
+                        <div 
+                            className="relative min-h-[180px] h-full w-full perspective-1000 cursor-pointer group"
+                            onClick={() => setIsBudgetedFlipped(!isBudgetedFlipped)}
+                        >
+                            <motion.div 
+                                className="w-full h-full relative preserve-3d transition-all duration-500 grid"
+                                animate={{ rotateY: isBudgetedFlipped ? 180 : 0 }}
+                                transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                            >
+                                {/* Front */}
+                                <div className="col-start-1 row-start-1 backface-hidden p-3 bg-bg-primary-themed rounded-2xl border border-border-primary flex flex-col h-full overflow-hidden">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-[8px] font-black text-text-muted-themed uppercase tracking-widest">Budgeted</span>
+                                        <span className="text-[9px] font-bold text-brand-primary">{((summaryData.budgetedExpenses / summaryData.expenses) * 100).toFixed(0)}%</span>
+                                    </div>
+                                    <div className="text-sm font-black text-text-base-themed flex items-baseline gap-1">
+                                        <span>{formatCurrency(summaryData.budgetedExpenses)}</span>
+                                        <span className="text-text-muted-themed text-[10px] font-bold">/ {formatCurrency(summaryData.totalBudgetAllocated)}</span>
+                                    </div>
+                                    <div className="w-full h-1 bg-bg-accent-themed rounded-full mt-2 overflow-hidden">
+                                        <div 
+                                            className="h-full bg-brand-primary" 
+                                            style={{ width: `${(summaryData.budgetedExpenses / summaryData.expenses) * 100}%` }}
+                                        />
+                                    </div>
+                                    
+                                    <div className="mt-3 flex-grow">
+                                        {Object.keys(summaryData.budgetedCategoryBreakdown).length > 0 ? (
+                                            <div className="space-y-1.5">
+                                                {Object.entries(summaryData.budgetedCategoryBreakdown).slice(0, 3).map(([cat, data]: [string, any]) => (
+                                                    <div key={cat} className="flex flex-col gap-0.5">
+                                                        <div className="flex justify-between items-center text-[9px]">
+                                                            <span className="text-text-muted-themed font-bold truncate pr-2">{cat}</span>
+                                                            <span className="text-text-base-themed font-black whitespace-nowrap">{formatCurrency(data.spent, 0)}</span>
+                                                        </div>
+                                                        <div className="w-full h-0.5 bg-bg-accent-themed rounded-full overflow-hidden">
+                                                            <div 
+                                                                className={`h-full ${data.spent > data.allocated ? 'bg-rose-500' : 'bg-brand-primary/50'}`}
+                                                                style={{ width: `${Math.min(100, (data.spent / data.allocated) * 100)}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                            <div className="w-full h-0.5 bg-bg-accent-themed rounded-full overflow-hidden">
-                                                <div 
-                                                    className={`h-full ${data.spent > data.allocated ? 'bg-rose-500' : 'bg-brand-primary/50'}`}
-                                                    style={{ width: `${Math.min(100, (data.spent / data.allocated) * 100)}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ) : (
+                                            <p className="text-[9px] text-text-muted-themed text-center mt-4">No budgets set</p>
+                                        )}
+                                    </div>
+                                    <div className="mt-4 pt-1 text-center">
+                                        <span className="text-[7px] font-black text-brand-primary/40 uppercase tracking-tighter">Click to Flip</span>
+                                    </div>
                                 </div>
-                            )}
+
+                                {/* Back: Mini Statement */}
+                                <div className="col-start-1 row-start-1 backface-hidden p-3 bg-bg-primary-themed rounded-2xl border border-border-primary flex flex-col rotate-y-180 h-full overflow-hidden">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-[8px] font-black text-brand-primary uppercase tracking-widest">Mini Statement</span>
+                                        <HistoryIcon className="w-3 h-3 text-brand-primary" />
+                                    </div>
+                                    <div className="flex-grow">
+                                        {[...summaryData.filteredTransactions]
+                                            .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''))
+                                            .slice(0, 7)
+                                            .map((tx, idx) => {
+                                                const isIncome = tx.type === TransactionType.INCOME;
+                                                return (
+                                                    <div key={tx.id || idx} className="flex justify-between items-center py-1 border-b border-border-primary/30 last:border-0">
+                                                        <div className="min-w-0 flex-1 mr-2">
+                                                            <p className="text-[9px] font-bold text-text-base-themed truncate">{tx.description}</p>
+                                                            <p className="text-[7px] text-text-muted-themed uppercase font-black tracking-tighter">{formatDateDisplay(tx.date)}</p>
+                                                        </div>
+                                                        <span className={`text-[9px] font-black ${isIncome ? 'text-income' : 'text-expense'}`}>
+                                                            {isIncome ? '+' : '-'}{formatCurrency(tx.amount, 0)}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })
+                                        }
+                                        {summaryData.filteredTransactions.length === 0 && (
+                                            <p className="text-[9px] text-text-muted-themed text-center mt-8">No recent transactions</p>
+                                        )}
+                                    </div>
+                                    <div className="mt-4 pt-1 text-center">
+                                        <span className="text-[7px] font-black text-brand-primary/40 uppercase tracking-tighter">Click to Flip</span>
+                                    </div>
+                                </div>
+                            </motion.div>
                         </div>
                         
-                        <div className="p-3 bg-bg-primary-themed rounded-2xl border border-border-primary">
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="text-[8px] font-black text-text-muted-themed uppercase tracking-widest">Unbudgeted</span>
-                                <span className="text-[9px] font-bold text-text-muted-themed">{((summaryData.unbudgetedExpenses / summaryData.expenses) * 100).toFixed(0)}%</span>
-                            </div>
-                            <div className="text-sm font-black text-text-base-themed">{formatCurrency(summaryData.unbudgetedExpenses)}</div>
-                            <div className="w-full h-1 bg-bg-accent-themed rounded-full mt-2 overflow-hidden">
-                                <div 
-                                    className="h-full bg-slate-400" 
-                                    style={{ width: `${(summaryData.unbudgetedExpenses / summaryData.expenses) * 100}%` }}
-                                />
-                            </div>
+                        {/* Unbudgeted Card */}
+                        <div 
+                            className="relative min-h-[180px] h-full w-full perspective-1000 cursor-pointer group"
+                            onClick={() => setIsUnbudgetedFlipped(!isUnbudgetedFlipped)}
+                        >
+                            <motion.div 
+                                className="w-full h-full relative preserve-3d transition-all duration-500 grid"
+                                animate={{ rotateY: isUnbudgetedFlipped ? 180 : 0 }}
+                                transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                            >
+                                {/* Front */}
+                                <div className="col-start-1 row-start-1 backface-hidden p-3 bg-bg-primary-themed rounded-2xl border border-border-primary flex flex-col h-full overflow-hidden">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-[8px] font-black text-text-muted-themed uppercase tracking-widest">Unbudgeted</span>
+                                        <span className="text-[9px] font-bold text-text-muted-themed">{((summaryData.unbudgetedExpenses / summaryData.expenses) * 100).toFixed(0)}%</span>
+                                    </div>
+                                    <div className="text-sm font-black text-text-base-themed">{formatCurrency(summaryData.unbudgetedExpenses)}</div>
+                                    <div className="w-full h-1 bg-bg-accent-themed rounded-full mt-2 overflow-hidden">
+                                        <div 
+                                            className="h-full bg-slate-400" 
+                                            style={{ width: `${(summaryData.unbudgetedExpenses / summaryData.expenses) * 100}%` }}
+                                        />
+                                    </div>
 
-                            {Object.keys(summaryData.unbudgetedCategoryBreakdown).length > 0 && (
-                                <div className="mt-3 space-y-1.5">
-                                    {Object.entries(summaryData.unbudgetedCategoryBreakdown).map(([cat, amt]) => (
-                                        <div key={cat} className="flex justify-between items-center text-[9px]">
-                                            <span className="text-text-muted-themed font-bold truncate pr-2">{cat}</span>
-                                            <span className="text-text-base-themed font-black whitespace-nowrap">{formatCurrency(amt as number, 0)}</span>
-                                        </div>
-                                    ))}
+                                    <div className="mt-3 flex-grow">
+                                        {Object.keys(summaryData.unbudgetedCategoryBreakdown).length > 0 ? (
+                                            <div className="space-y-1.5">
+                                                {Object.entries(summaryData.unbudgetedCategoryBreakdown).map(([cat, amt]) => (
+                                                    <div key={cat} className="flex justify-between items-center text-[9px]">
+                                                        <span className="text-text-muted-themed font-bold truncate pr-2">{cat}</span>
+                                                        <span className="text-text-base-themed font-black whitespace-nowrap">{formatCurrency(amt as number, 0)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-[9px] text-text-muted-themed text-center mt-4">No unbudgeted spending</p>
+                                        )}
+                                    </div>
+                                    <div className="mt-4 pt-1 text-center">
+                                        <span className="text-[7px] font-black text-slate-400/60 uppercase tracking-tighter">Click to Flip</span>
+                                    </div>
                                 </div>
-                            )}
+
+                                {/* Back: Bar Chart */}
+                                <div className="col-start-1 row-start-1 backface-hidden p-3 bg-bg-primary-themed rounded-2xl border border-border-primary flex flex-col rotate-y-180 h-full overflow-hidden">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Unbudgeted Breakdown</span>
+                                        <ChartIcon className="w-3 h-3 text-slate-500" />
+                                    </div>
+                                    <div className="flex-grow flex items-end gap-1.5 px-1 pb-1 min-h-[120px]">
+                                        {Object.entries(summaryData.unbudgetedCategoryBreakdown).length > 0 ? (
+                                            Object.entries(summaryData.unbudgetedCategoryBreakdown).map(([cat, amt], idx) => {
+                                                const max = Math.max(...Object.values(summaryData.unbudgetedCategoryBreakdown) as number[]);
+                                                const height = (amt as number / max) * 100;
+                                                const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#06b6d4', '#3b82f6'];
+                                                const barColor = colors[idx % colors.length];
+                                                
+                                                return (
+                                                    <div key={cat} className="flex-1 min-w-[12px] flex flex-col items-center gap-1 group/bar h-full justify-end">
+                                                        <div className="relative w-full flex flex-col items-center justify-end flex-grow">
+                                                            <div 
+                                                                className="w-full rounded-t-md transition-all duration-500 group-hover/bar:brightness-110 shadow-sm"
+                                                                style={{ 
+                                                                    height: `${Math.max(height, 5)}%`, 
+                                                                    backgroundColor: barColor,
+                                                                    opacity: 0.8
+                                                                }}
+                                                            />
+                                                            <span className="absolute -top-4 text-[7px] font-black text-text-base-themed opacity-0 group-hover/bar:opacity-100 transition-opacity whitespace-nowrap bg-bg-secondary-themed px-1 rounded shadow-sm border border-border-primary z-10">
+                                                                {formatCurrency(amt as number, 0)}
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-[7px] font-bold text-text-muted-themed truncate w-full text-center mt-1" title={cat}>{cat}</span>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <p className="text-[9px] text-text-muted-themed text-center w-full mb-8">No data</p>
+                                        )}
+                                    </div>
+                                    <div className="mt-4 pt-1 text-center">
+                                        <span className="text-[7px] font-black text-slate-400/60 uppercase tracking-tighter">Click to Flip</span>
+                                    </div>
+                                </div>
+                            </motion.div>
                         </div>
                     </div>
                 </div>

@@ -82,9 +82,9 @@ const ReminderBell: React.FC<ReminderBellProps> = ({
     
     const todoReminders = useMemo(() => upcomingPayments.filter(p => p.type === 'todo'), [upcomingPayments]);
     const dayPlannerReminders = useMemo(() => upcomingPayments.filter(p => p.type === 'dayPlanner'), [upcomingPayments]);
-    const subscriptionReminders = useMemo(() => upcomingPayments.filter(p => p.type === 'subscription').sort((a,b) => a.dueDate.localeCompare(b.dueDate)), [upcomingPayments]);
-    const rechargeReminders = useMemo(() => upcomingPayments.filter(p => p.type === 'recharge').sort((a,b) => a.dueDate.localeCompare(b.dueDate)), [upcomingPayments]);
-    const festiveReminders = useMemo(() => upcomingPayments.filter(p => p.type === 'festive').sort((a,b) => a.dueDate.localeCompare(b.dueDate)), [upcomingPayments]);
+    const subscriptionReminders = useMemo(() => upcomingPayments.filter(p => p.type === 'subscription').sort((a,b) => (a.dueDate || '').localeCompare(b.dueDate || '')), [upcomingPayments]);
+    const rechargeReminders = useMemo(() => upcomingPayments.filter(p => p.type === 'recharge').sort((a,b) => (a.dueDate || '').localeCompare(b.dueDate || '')), [upcomingPayments]);
+    const festiveReminders = useMemo(() => upcomingPayments.filter(p => p.type === 'festive').sort((a,b) => (a.dueDate || '').localeCompare(b.dueDate || '')), [upcomingPayments]);
 
     const hasReminders = useMemo(() => upcomingPayments.length > 0, [upcomingPayments]);
 
@@ -104,7 +104,7 @@ const ReminderBell: React.FC<ReminderBellProps> = ({
             return { color: currentThemeColors.textMuted };
         }
 
-        allUpcomingUnpaidItems.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+        allUpcomingUnpaidItems.sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
         const soonestItem = allUpcomingUnpaidItems[0];
         
         const dueDate = new Date(soonestItem.dueDate.split('T')[0] + 'T00:00:00');
@@ -125,7 +125,7 @@ const ReminderBell: React.FC<ReminderBellProps> = ({
             if (!groups[monthKey]) groups[monthKey] = [];
             groups[monthKey].push(item);
         });
-        Object.values(groups).forEach(group => group.sort((a, b) => a.dueDate.localeCompare(b.dueDate)));
+        Object.values(groups).forEach(group => group.sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || '')));
         const sortedMonthKeys = Object.keys(groups).sort((a, b) => new Date(`01 ${a}`).getTime() - new Date(`01 ${b}`).getTime());
         return sortedMonthKeys.reduce((acc, key) => ({ ...acc, [key]: groups[key] }), {});
     }, [paymentsWithStatus]);

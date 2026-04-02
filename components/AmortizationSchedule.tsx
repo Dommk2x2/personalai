@@ -220,20 +220,33 @@ export const AmortizationSchedule: React.FC<AmortizationScheduleProps> = ({
     const newStatus = { ...paymentStatus, [monthNumber]: isNowPaid };
     setPaymentStatus(newStatus);
     
+    let updatedGreeting = completionGreeting;
+
     // Check if this was the last payment to trigger celebration
     if (isNowPaid && scheduleResult) {
         const totalInstallments = scheduleResult.schedule.length;
         const paidCount = Object.values(newStatus).filter(Boolean).length;
         
         if (paidCount === totalInstallments) {
-            const greeting = `Hooray! You have officially cleared your ${loanName || 'loan'} on ${new Date().toLocaleDateString('en-IN')}. Your financial discipline has paid off!`;
-            setCompletionGreeting(greeting);
+            updatedGreeting = `Hooray! You have officially cleared your ${loanName || 'loan'} on ${new Date().toLocaleDateString('en-IN')}. Your financial discipline has paid off!`;
+            setCompletionGreeting(updatedGreeting);
             setShowCelebration(true);
         } else {
+            updatedGreeting = null;
             setCompletionGreeting(null);
         }
     } else {
+        updatedGreeting = null;
         setCompletionGreeting(null);
+    }
+
+    // Auto-save if viewing a saved schedule to ensure persistence
+    if (isViewingSaved && loadedScheduleId) {
+      setSavedAmortizationSchedules(prev => prev.map(s => 
+        s.id === loadedScheduleId 
+          ? { ...s, paymentStatus: newStatus, completionGreeting: updatedGreeting } 
+          : s
+      ));
     }
   };
   
@@ -464,7 +477,30 @@ export const AmortizationSchedule: React.FC<AmortizationScheduleProps> = ({
             <div><label htmlFor="tenureValue-amort" className={labelClasses}>Loan Tenure</label><input type="number" id="tenureValue-amort" value={tenureValue} onChange={(e) => setTenureValue(e.target.value)} className={inputClasses} step="1" /></div>
             <div><label htmlFor="tenureUnit-amort" className={labelClasses}>Tenure Unit</label><select id="tenureUnit-amort" value={tenureUnit} onChange={(e) => setTenureUnit(e.target.value as 'years' | 'months')} className={inputClasses}><option value="years">Years</option><option value="months">Months</option></select></div>
           </div>
-          <div><label htmlFor="startDate-amort" className={labelClasses}>Loan Start Date</label><input type="date" id="startDate-amort" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClasses} /></div>
+          <div>
+            <label htmlFor="startDate-amort" className={labelClasses}>Loan Start Date</label>
+            <div className="flex gap-2">
+              <input 
+                type="date" 
+                id="startDate-amort" 
+                value={startDate} 
+                onChange={(e) => setStartDate(e.target.value)} 
+                className={inputClasses} 
+              />
+              {isViewingSaved && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    calculateSchedule();
+                    addToast("Schedule recalculated with new date. Click 'Update Schedule' to save.", "info");
+                  }}
+                  className="px-3 py-2 bg-brand-primary/10 text-brand-primary rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-brand-primary/20 transition-all"
+                >
+                  Recalculate
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="space-y-3 sm:space-y-4 flex flex-col justify-end">
@@ -495,40 +531,42 @@ export const AmortizationSchedule: React.FC<AmortizationScheduleProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {scheduleResult.schedule.map((entry, index) => (
-                  <tr key={entry.month} style={{backgroundColor: index % 2 === 0 ? currentThemeColors.bgSecondary : currentThemeColors.bgAccent+'33'}} className="hover:bg-bg-accent-themed/20">
-                    <td className="px-3 py-2 font-bold">{entry.month}</td>
-                    <td className="px-3 py-2">
-                      <div className="font-bold">{formatDateDisplay(entry.paymentDate)}</div>
-                      {(() => {
-                        const isPaid = paymentStatus[entry.month];
-                        const plannedDate = getDueDateForMonth(entry.month, startDate);
-                        const plannedDateStr = formatDateToYYYYMMDD(plannedDate);
-                        const todayStr = formatDateToYYYYMMDD(new Date());
-                        
-                        if (isPaid) {
-                          const diff = getDaysDifference(entry.paymentDate, plannedDateStr);
-                          if (diff < 0) return <span className="text-[9px] font-black uppercase text-green-500">Paid {Math.abs(diff)}d early</span>;
-                          if (diff > 0) return <span className="text-[9px] font-black uppercase text-red-500">Paid {diff}d late</span>;
-                          return <span className="text-[9px] font-black uppercase text-blue-400">Paid on time</span>;
-                        } else {
-                          const diff = getDaysDifference(plannedDateStr, todayStr);
-                          if (diff < 0) return <span className="text-[9px] font-black uppercase text-orange-500">Overdue {Math.abs(diff)}d</span>;
-                          if (diff === 0) return <span className="text-[9px] font-black uppercase text-yellow-500">Due today</span>;
-                          return <span className="text-[9px] font-black uppercase text-slate-400">Due in {diff}d</span>;
-                        }
-                      })()}
-                    </td>
-                    <td className="px-3 py-2 text-right">{formatCurrency(entry.principalPaid)}</td>
-                    <td className="px-3 py-2 text-right" style={{color: currentThemeColors.expense}}>{formatCurrency(entry.interestPaid)}</td>
-                    <td className="px-3 py-2 text-right font-bold" style={{color: currentThemeColors.brandPrimary}}>{formatCurrency(entry.emi)}</td>
-                    <td className="px-3 py-2 text-center">
-                      <button onClick={() => togglePaymentStatus(entry.month)} className="p-1 rounded-full transition-all hover:scale-110" style={{ color: paymentStatus[entry.month] ? currentThemeColors.income : currentThemeColors.expense }}>
-                        {paymentStatus[entry.month] ? <CheckCircleIcon className="w-5 h-5"/> : <XCircleIcon className="w-5 h-5"/>}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {scheduleResult.schedule.map((entry, index) => {
+                  const plannedDate = getDueDateForMonth(entry.month, startDate);
+                  const plannedDateStr = formatDateToYYYYMMDD(plannedDate);
+                  const todayStr = formatDateToYYYYMMDD(new Date());
+                  const isPaid = paymentStatus[entry.month];
+
+                  return (
+                    <tr key={entry.month} style={{backgroundColor: index % 2 === 0 ? currentThemeColors.bgSecondary : currentThemeColors.bgAccent+'33'}} className="hover:bg-bg-accent-themed/20">
+                      <td className="px-3 py-2 font-bold">{entry.month}</td>
+                      <td className="px-3 py-2">
+                        <div className="font-bold">{formatDateDisplay(plannedDateStr)}</div>
+                        {(() => {
+                          if (isPaid) {
+                            const diff = getDaysDifference(entry.paymentDate, plannedDateStr);
+                            if (diff < 0) return <span className="text-[9px] font-black uppercase text-green-500">Paid {Math.abs(diff)}d early</span>;
+                            if (diff > 0) return <span className="text-[9px] font-black uppercase text-red-500">Paid {diff}d late</span>;
+                            return <span className="text-[9px] font-black uppercase text-blue-400">Paid on time</span>;
+                          } else {
+                            const diff = getDaysDifference(plannedDateStr, todayStr);
+                            if (diff < 0) return <span className="text-[9px] font-black uppercase text-orange-500">Overdue {Math.abs(diff)}d</span>;
+                            if (diff === 0) return <span className="text-[9px] font-black uppercase text-yellow-500">Due today</span>;
+                            return <span className="text-[9px] font-black uppercase text-slate-400">Due in {diff}d</span>;
+                          }
+                        })()}
+                      </td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(entry.principalPaid)}</td>
+                      <td className="px-3 py-2 text-right" style={{color: currentThemeColors.expense}}>{formatCurrency(entry.interestPaid)}</td>
+                      <td className="px-3 py-2 text-right font-bold" style={{color: currentThemeColors.brandPrimary}}>{formatCurrency(entry.emi)}</td>
+                      <td className="px-3 py-2 text-center">
+                        <button onClick={() => togglePaymentStatus(entry.month)} className="p-1 rounded-full transition-all hover:scale-110" style={{ color: paymentStatus[entry.month] ? currentThemeColors.income : currentThemeColors.expense }}>
+                          {paymentStatus[entry.month] ? <CheckCircleIcon className="w-5 h-5"/> : <XCircleIcon className="w-5 h-5"/>}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
         </div>

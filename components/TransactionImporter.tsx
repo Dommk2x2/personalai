@@ -304,7 +304,7 @@ Here is the text from the PDF:
                 isSelected: true,
             };
         })
-        .sort((a, b) => b.date.localeCompare(a.date)); // Sort by date, most recent first
+        .sort((a, b) => (b.date || '').localeCompare(a.date || '')); // Sort by date, most recent first
 
       if (transactions.length === 0) {
         setError("AI could not find any transactions matching your request in this PDF. It might be an image-based file, password-protected, or have an unusual format. Please try again or refine your request.");
@@ -448,7 +448,7 @@ Here is the text from the PDF:
                       className={`mt-1 block w-full px-3 py-2 bg-bg-primary-themed border border-border-primary rounded-lg shadow-sm focus:outline-none focus:ring-brand-primary focus:border-brand-primary sm:text-sm text-text-base-themed ${!importAccountId ? 'border-red-500' : ''}`}
                   >
                       <option value="" disabled>-- Select an Account --</option>
-                      {[...accounts].sort((a, b) => a.name.localeCompare(b.name)).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                      {[...accounts].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                   </select>
               </div>
             </div>
@@ -551,7 +551,7 @@ Here is the text from the PDF:
                       <td className="p-2"><input type="text" value={tx.description} onChange={e => handleUpdateTransaction(tx.id, 'description', e.target.value)} className={inputClasses} /></td>
                       <td className="p-2 text-right"><input type="number" value={tx.amount} onChange={e => handleUpdateTransaction(tx.id, 'amount', e.target.value)} className={inputClasses} /></td>
                       <td className="p-2"><select value={tx.type} onChange={e => handleUpdateTransaction(tx.id, 'type', e.target.value as TransactionType)} className={inputClasses}><option value={TransactionType.EXPENSE}>Expense</option><option value={TransactionType.INCOME}>Income</option></select></td>
-                      <td className="p-2"><select value={tx.category} onChange={e => handleUpdateTransaction(tx.id, 'category', e.target.value)} className={inputClasses}><option value="">-- Select --</option>{[...(tx.type === TransactionType.INCOME ? incomeCategories : expenseCategories)].sort((a, b) => a.localeCompare(b)).map(cat => <option key={cat} value={cat}>{cat}</option>)}</select></td>
+                      <td className="p-2"><select value={tx.category} onChange={e => handleUpdateTransaction(tx.id, 'category', e.target.value)} className={inputClasses}><option value="">-- Select --</option>{[...(tx.type === TransactionType.INCOME ? incomeCategories : expenseCategories)].sort((a, b) => (a || '').localeCompare(b || '')).map(cat => <option key={cat} value={cat}>{cat}</option>)}</select></td>
                       <td className="p-2 text-center">
                           <button onClick={() => handleDeleteTransaction(tx.id)} className="text-expense hover:text-red-700">
                               <TrashIcon className="w-4 h-4" />
