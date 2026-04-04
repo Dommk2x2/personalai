@@ -109,7 +109,7 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
         remaining,
         dailySuggestion
       };
-    }).sort((a,b) => a.category.localeCompare(b.category));
+    }).sort((a,b) => (a.category || '').localeCompare(b.category || ''));
     
     const tAllocated = budgetsForCurrentPeriod.reduce((s, b) => s + b.allocated, 0);
     const tSpent = Object.values(spendingByCategory).reduce((sum, amount) => sum + amount, 0);
@@ -158,23 +158,23 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 mb-6">
-          <div className="p-3 bg-brand-primary/10 rounded-xl border border-brand-primary/10">
+          <div className="p-3 bg-brand-primary/10 rounded-xl border border-brand-primary/10 flex flex-col justify-between min-h-[80px]">
               <p className="text-[9px] font-black text-text-muted-themed uppercase tracking-widest mb-1">Limit</p>
               <p className="text-lg font-black text-brand-primary leading-none">{formatCurrency(totalAllocated)}</p>
           </div>
-          <div className="p-3 bg-rose-500/10 rounded-xl border border-rose-500/10">
+          <div className="p-3 bg-rose-500/10 rounded-xl border border-rose-500/10 flex flex-col justify-between min-h-[80px]">
               <p className="text-[9px] font-black text-text-muted-themed uppercase tracking-widest mb-1">Spent</p>
               <p className="text-lg font-black text-rose-500 leading-none">{formatCurrency(totalSpent)}</p>
           </div>
-          <div className="p-3 bg-bg-accent-themed rounded-xl border border-border-primary">
+          <div className="p-3 bg-bg-accent-themed rounded-xl border border-border-primary flex flex-col justify-between min-h-[80px]">
               <p className="text-[9px] font-black text-text-muted-themed uppercase tracking-widest mb-1">Balance</p>
               <p className="text-lg font-black text-text-base-themed leading-none">{formatCurrency(totalRemaining)}</p>
           </div>
-          <div className="p-3 bg-bg-accent-themed rounded-xl border border-border-primary">
+          <div className="p-3 bg-bg-accent-themed rounded-xl border border-border-primary flex flex-col justify-between min-h-[80px]">
               <p className="text-[9px] font-black text-text-muted-themed uppercase tracking-widest mb-1">Days Left</p>
               <p className="text-lg font-black text-text-base-themed leading-none">{daysRemaining}</p>
           </div>
-          <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/10">
+          <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/10 flex flex-col justify-between min-h-[80px]">
               <p className="text-[9px] font-black text-text-muted-themed uppercase tracking-widest mb-1">Daily Sug.</p>
               <p className="text-lg font-black text-emerald-600 leading-none">{formatCurrency(totalDailySuggestion)}</p>
           </div>
@@ -312,7 +312,7 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
                           <label className="text-[10px] font-black uppercase text-text-muted-themed tracking-widest mb-1.5 block">Category</label>
                           <select name="category" required className="w-full p-3 bg-bg-primary-themed border border-border-primary rounded-xl text-sm font-bold text-text-base-themed outline-none focus:ring-2 focus:ring-brand-primary/20">
                               <option value="">Select Category</option>
-                              {[...(expenseCategories ?? [])].sort((a, b) => a.localeCompare(b)).map(cat => (
+                              {[...(expenseCategories ?? [])].sort((a, b) => (a || '').localeCompare(b || '')).map(cat => (
                                   <option key={cat} value={cat}>{cat}</option>
                               ))}
                           </select>

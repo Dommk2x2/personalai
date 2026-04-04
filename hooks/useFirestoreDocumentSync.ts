@@ -7,7 +7,7 @@ export function useFirestoreDocumentSync<T>(
   documentPath: string,
   localStorageKey: string,
   initialValue: T
-): [T, Dispatch<SetStateAction<T>>, boolean] {
+): { data: T; setData: Dispatch<SetStateAction<T>>; loading: boolean } {
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(localStorageKey);
@@ -95,5 +95,5 @@ export function useFirestoreDocumentSync<T>(
     });
   }, [user, documentPath, localStorageKey]);
 
-  return [storedValue, setValue, loading];
+  return { data: storedValue, setData: setValue, loading };
 }

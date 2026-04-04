@@ -4,13 +4,16 @@ import { DatabaseIcon, TrashIcon, RestoreIcon, EditIcon, SaveIcon, XIcon, Downlo
 import { useTheme } from '../contexts/ThemeContext';
 import { hexToRgba } from '../utils/colorUtils';
 import { LOCAL_STORAGE_DATABASE_PASSWORD_KEY } from '../constants';
-import useLocalStorage from '../hooks/useLocalStorage';
 
 const APP_KEY_PREFIX = 'financeTracker';
 
-export const ViewRawLocalStorageTable: React.FC = () => {
+interface ViewRawLocalStorageTableProps {
+    dbMasterKey: string | null;
+    setDbMasterKey: (key: string | null) => void;
+}
+
+export const ViewRawLocalStorageTable: React.FC<ViewRawLocalStorageTableProps> = ({ dbMasterKey, setDbMasterKey }) => {
     const { currentThemeColors, theme } = useTheme();
-    const [dbMasterKey, setDbMasterKey] = useLocalStorage<string | null>(LOCAL_STORAGE_DATABASE_PASSWORD_KEY, null);
     const [isUnlocked, setIsUnlocked] = useState(false);
     
     // Auth State

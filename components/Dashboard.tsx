@@ -111,7 +111,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   }, [accounts, transactions, activeAccount, openingBalance, budgetSettings, financialMonthStartDay]);
 
   const SummaryCard: React.FC<{ title: string; value: string; icon: React.FC<any>; color: string; onClick?: () => void; progress?: number; subtitle?: string }> = ({ title, value, icon: Icon, color, onClick, progress, subtitle }) => (
-    <div className={`bg-bg-secondary-themed p-4 sm:p-5 rounded-xl shadow-lg flex flex-col transition-transform duration-300 hover:scale-105 hover:shadow-xl ${onClick ? 'cursor-pointer' : ''}`} onClick={onClick}>
+    <div className={`bg-bg-secondary-themed p-4 sm:p-5 rounded-xl shadow-lg flex flex-col h-full transition-transform duration-300 hover:scale-105 hover:shadow-xl ${onClick ? 'cursor-pointer' : ''}`} onClick={onClick}>
       <div className="flex items-center mb-3">
         <div className="p-2.5 rounded-full mr-4" style={{ backgroundColor: `${color}20`}}>
           <Icon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color }} />

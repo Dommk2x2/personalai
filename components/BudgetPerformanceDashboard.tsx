@@ -128,11 +128,11 @@ const BudgetPerformanceDashboard: React.FC<BudgetPerformanceDashboardProps> = ({
         <MetricCard title="Utilization" value={`${budgetPerformanceData.utilization.toFixed(1)}%`} color={currentThemeColors.brandSecondary} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {/* Budgeted Categories */}
-        <div className="bg-bg-primary-themed p-4 rounded-lg shadow-md">
+        <div className="bg-bg-primary-themed p-4 rounded-lg shadow-md border border-border-primary flex flex-col">
             <h4 className="font-semibold text-lg mb-3 text-text-base-themed">Budgeted Categories</h4>
-            <div className="space-y-4 max-h-[25rem] overflow-y-auto pr-2">
+            <div className="space-y-4 max-h-[25rem] overflow-y-auto pr-2 flex-grow">
                 {budgetPerformanceData.budgetItems.map(({ category, allocated, spent, remaining }) => {
                     const progress = allocated > 0 ? (spent / allocated) * 100 : 0;
                     const isOverBudget = progress > 100;
@@ -159,13 +159,21 @@ const BudgetPerformanceDashboard: React.FC<BudgetPerformanceDashboardProps> = ({
         </div>
 
         {/* Unbudgeted Spending */}
-        <div className="bg-bg-primary-themed p-4 rounded-lg shadow-md">
+        <div className="bg-bg-primary-themed p-4 rounded-lg shadow-md border border-border-primary flex flex-col">
             <h4 className="font-semibold text-lg mb-3 text-text-base-themed">Unbudgeted Spending</h4>
-             <div className="space-y-2 max-h-[25rem] overflow-y-auto pr-2">
+             <div className="space-y-4 max-h-[25rem] overflow-y-auto pr-2 flex-grow">
                 {budgetPerformanceData.unbudgetedSpending.map(([category, amount]) => (
-                    <div key={category} className="flex justify-between items-center text-sm p-2 bg-bg-secondary-themed rounded">
-                        <span className="font-medium text-text-base-themed">{category}</span>
-                        <span className="font-semibold" style={{color: currentThemeColors.expense}}>{formatCurrency(amount)}</span>
+                    <div key={category}>
+                        <div className="flex justify-between items-center text-sm mb-1">
+                            <span className="font-medium text-text-base-themed">{category}</span>
+                            <span className="font-semibold text-expense">{formatCurrency(amount)}</span>
+                        </div>
+                        <div className="w-full bg-bg-secondary-themed rounded-full h-2.5">
+                            <div className="h-2.5 rounded-full bg-slate-400 dark:bg-slate-600" style={{ width: '100%' }}></div>
+                        </div>
+                        <p className="text-xs text-right mt-1 text-text-muted-themed italic">
+                            No budget set
+                        </p>
                     </div>
                 ))}
                 {budgetPerformanceData.unbudgetedSpending.length === 0 && <p className="text-sm text-text-muted-themed text-center pt-4">No spending in unbudgeted categories for this period.</p>}

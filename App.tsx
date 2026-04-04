@@ -50,7 +50,8 @@ import {
   LOCAL_STORAGE_MENU_ITEMS_KEY, LOCAL_STORAGE_SALARY_DEDUCTIONS_KEY,
   LOCAL_STORAGE_DEFAULT_DASHBOARD_PERIOD_KEY, LOCAL_STORAGE_ACCOUNT_SPECIFIC_SETTINGS_KEY,
   LOCAL_STORAGE_FESTIVE_DATES_KEY, LOCAL_STORAGE_HOME_PAGE_LAYOUT_KEY, LOCAL_STORAGE_MODE_LAYOUTS_KEY,
-  LOCAL_STORAGE_OVERLAY_SETTINGS_KEY
+  LOCAL_STORAGE_OVERLAY_SETTINGS_KEY, LOCAL_STORAGE_LOCK_SCREEN_PICTURE_KEY,
+  LOCAL_STORAGE_LOGIN_BACKGROUND_KEY, LOCAL_STORAGE_DATABASE_PASSWORD_KEY
 } from './constants';
 
 // Component Imports
@@ -131,46 +132,46 @@ import { ArrowsPointingOutIcon } from './components/Icons';
 
 const App: React.FC = () => {
   // --- Persistent Storage State ---
-  const [appTitle, setAppTitle] = useFirestoreDocumentSync<string>('settings/appTitle', LOCAL_STORAGE_APP_TITLE_KEY, 'Personal AI');
-  const [customBrandColor, setCustomBrandColor] = useFirestoreDocumentSync<string | null>('settings/customBrandColor', 'financeTrackerCustomBrandColor', null);
-  const [transactions, setTransactions] = useFirestoreCollectionSync<Transaction>('transactions', LOCAL_STORAGE_KEY, [], item => item.id);
-  const [accounts, setAccounts] = useFirestoreCollectionSync<Account>('accounts', LOCAL_STORAGE_ACCOUNTS_KEY, [], item => item.id);
-  const [activeAccountId, setActiveAccountIdState] = useFirestoreDocumentSync<string | null>('settings/activeAccountId', LOCAL_STORAGE_ACTIVE_ACCOUNT_ID_KEY, null);
-  const [expenseCategories, setExpenseCategories] = useFirestoreDocumentSync<string[]>('settings/expenseCategories', LOCAL_STORAGE_EXPENSE_CATEGORIES_KEY, DEFAULT_EXPENSE_CATEGORIES);
-  const [incomeCategoriesList, setIncomeCategoriesList] = useFirestoreDocumentSync<string[]>('settings/incomeCategoriesList', LOCAL_STORAGE_INCOME_CATEGORIES_KEY, DEFAULT_INCOME_CATEGORIES);
-  const [budgetSettings, setBudgetSettings] = useFirestoreCollectionSync<BudgetSetting>('budgetSettings', LOCAL_STORAGE_BUDGETS_KEY, [], item => `${item.accountId}_${item.category}_${item.periodIdentifier}`);
-  const [notificationHistory, setNotificationHistory] = useFirestoreDocumentSync<ToastInfo[]>('settings/notificationHistory', LOCAL_STORAGE_NOTIFICATION_HISTORY_KEY, []);
-  const [attendanceEntries, setAttendanceEntries] = useFirestoreCollectionSync<AttendanceEntry>('attendanceEntries', LOCAL_STORAGE_ATTENDANCE_KEY, [], item => item.date);
-  const [attendanceHistory, setAttendanceHistory] = useFirestoreCollectionSync<AttendanceHistoryEntry>('attendanceHistory', LOCAL_STORAGE_ATTENDANCE_HISTORY_KEY, [], item => item.id);
-  const [monthlySalary, setMonthlySalary] = useFirestoreDocumentSync<number | null>('settings/monthlySalary', LOCAL_STORAGE_MONTHLY_SALARY_KEY, null);
-  const [selectedWeeklyOffDay, setSelectedWeeklyOffDay] = useFirestoreDocumentSync<number>('settings/selectedWeeklyOffDay', LOCAL_STORAGE_SELECTED_WEEKLY_OFF_DAY_KEY, 0);
-  const [monthlyOffLimits, setMonthlyOffLimits] = useFirestoreDocumentSync<Record<string, number>>('settings/monthlyOffLimits', LOCAL_STORAGE_MONTHLY_OFF_LIMIT_KEY, {});
-  const [financialMonthStartDay, setFinancialMonthStartDay] = useFirestoreDocumentSync<number>('settings/financialMonthStartDay', LOCAL_STORAGE_FINANCIAL_MONTH_START_DAY_KEY, 5);
-  const [financialMonthEndDay, setFinancialMonthEndDay] = useFirestoreDocumentSync<number>('settings/financialMonthEndDay', LOCAL_STORAGE_FINANCIAL_MONTH_END_DAY_KEY, 4);
-  const [financialYearStartMonth, setFinancialYearStartMonth] = useFirestoreDocumentSync<number>('settings/financialYearStartMonth', LOCAL_STORAGE_FINANCIAL_YEAR_START_MONTH_KEY, 1);
-  const [financialYearStartDay, setFinancialYearStartDay] = useFirestoreDocumentSync<number>('settings/financialYearStartDay', LOCAL_STORAGE_FINANCIAL_YEAR_START_DAY_KEY, 1);
-  const [financialYearEndMonth, setFinancialYearEndMonth] = useFirestoreDocumentSync<number>('settings/financialYearEndMonth', LOCAL_STORAGE_FINANCIAL_YEAR_END_MONTH_KEY, 12);
-  const [financialYearEndDay, setFinancialYearEndDay] = useFirestoreDocumentSync<number>('settings/financialYearEndDay', LOCAL_STORAGE_FINANCIAL_YEAR_END_DAY_KEY, 31);
-  const [savedAmortizationSchedules, setSavedAmortizationSchedules] = useFirestoreCollectionSync<SavedAmortizationSchedule>('savedAmortizationSchedules', LOCAL_STORAGE_SAVED_AMORTIZATION_SCHEDULES_KEY, [], item => item.id);
-  const [sessionTimeoutDurationSeconds, setSessionTimeoutDurationSeconds] = useFirestoreDocumentSync<number>('settings/sessionTimeoutDurationSeconds', LOCAL_STORAGE_SESSION_TIMEOUT_DURATION_KEY, DEFAULT_SESSION_TIMEOUT_DURATION_SECONDS);
-  const [useDigitalFontForTimers, setUseDigitalFontForTimers] = useFirestoreDocumentSync<boolean>('settings/useDigitalFontForTimers', LOCAL_STORAGE_USE_DIGITAL_FONT_KEY, false);
-  const [userCredentials, setUserCredentials] = useFirestoreCollectionSync<UserCredential>('userCredentials', LOCAL_STORAGE_USER_CREDENTIALS_KEY, [], item => item.id);
-  const [todos, setTodos] = useFirestoreCollectionSync<TodoItem>('todos', LOCAL_STORAGE_TODOS_KEY, [], item => item.id);
+  const { data: appTitle, setData: setAppTitle } = useFirestoreDocumentSync<string>('settings/appTitle', LOCAL_STORAGE_APP_TITLE_KEY, 'Personal AI');
+  const { data: customBrandColor, setData: setCustomBrandColor } = useFirestoreDocumentSync<string | null>('settings/customBrandColor', 'financeTrackerCustomBrandColor', null);
+  const { data: transactions, setData: setTransactions } = useFirestoreCollectionSync<Transaction>('transactions', LOCAL_STORAGE_KEY, [], item => item.id);
+  const { data: accounts, setData: setAccounts } = useFirestoreCollectionSync<Account>('accounts', LOCAL_STORAGE_ACCOUNTS_KEY, [], item => item.id);
+  const { data: activeAccountId, setData: setActiveAccountIdState } = useFirestoreDocumentSync<string | null>('settings/activeAccountId', LOCAL_STORAGE_ACTIVE_ACCOUNT_ID_KEY, null);
+  const { data: expenseCategories, setData: setExpenseCategories } = useFirestoreDocumentSync<string[]>('settings/expenseCategories', LOCAL_STORAGE_EXPENSE_CATEGORIES_KEY, DEFAULT_EXPENSE_CATEGORIES);
+  const { data: incomeCategoriesList, setData: setIncomeCategoriesList } = useFirestoreDocumentSync<string[]>('settings/incomeCategoriesList', LOCAL_STORAGE_INCOME_CATEGORIES_KEY, DEFAULT_INCOME_CATEGORIES);
+  const { data: budgetSettings, setData: setBudgetSettings } = useFirestoreCollectionSync<BudgetSetting>('budgetSettings', LOCAL_STORAGE_BUDGETS_KEY, [], item => `${item.accountId}_${item.category}_${item.periodIdentifier}`);
+  const { data: notificationHistory, setData: setNotificationHistory } = useFirestoreDocumentSync<ToastInfo[]>('settings/notificationHistory', LOCAL_STORAGE_NOTIFICATION_HISTORY_KEY, []);
+  const { data: attendanceEntries, setData: setAttendanceEntries } = useFirestoreCollectionSync<AttendanceEntry>('attendanceEntries', LOCAL_STORAGE_ATTENDANCE_KEY, [], item => item.date);
+  const { data: attendanceHistory, setData: setAttendanceHistory } = useFirestoreCollectionSync<AttendanceHistoryEntry>('attendanceHistory', LOCAL_STORAGE_ATTENDANCE_HISTORY_KEY, [], item => item.id);
+  const { data: monthlySalary, setData: setMonthlySalary } = useFirestoreDocumentSync<number | null>('settings/monthlySalary', LOCAL_STORAGE_MONTHLY_SALARY_KEY, null);
+  const { data: selectedWeeklyOffDay, setData: setSelectedWeeklyOffDay } = useFirestoreDocumentSync<number>('settings/selectedWeeklyOffDay', LOCAL_STORAGE_SELECTED_WEEKLY_OFF_DAY_KEY, 0);
+  const { data: monthlyOffLimits, setData: setMonthlyOffLimits } = useFirestoreDocumentSync<Record<string, number>>('settings/monthlyOffLimits', LOCAL_STORAGE_MONTHLY_OFF_LIMIT_KEY, {});
+  const { data: financialMonthStartDay, setData: setFinancialMonthStartDay } = useFirestoreDocumentSync<number>('settings/financialMonthStartDay', LOCAL_STORAGE_FINANCIAL_MONTH_START_DAY_KEY, 5);
+  const { data: financialMonthEndDay, setData: setFinancialMonthEndDay } = useFirestoreDocumentSync<number>('settings/financialMonthEndDay', LOCAL_STORAGE_FINANCIAL_MONTH_END_DAY_KEY, 4);
+  const { data: financialYearStartMonth, setData: setFinancialYearStartMonth } = useFirestoreDocumentSync<number>('settings/financialYearStartMonth', LOCAL_STORAGE_FINANCIAL_YEAR_START_MONTH_KEY, 1);
+  const { data: financialYearStartDay, setData: setFinancialYearStartDay } = useFirestoreDocumentSync<number>('settings/financialYearStartDay', LOCAL_STORAGE_FINANCIAL_YEAR_START_DAY_KEY, 1);
+  const { data: financialYearEndMonth, setData: setFinancialYearEndMonth } = useFirestoreDocumentSync<number>('settings/financialYearEndMonth', LOCAL_STORAGE_FINANCIAL_YEAR_END_MONTH_KEY, 12);
+  const { data: financialYearEndDay, setData: setFinancialYearEndDay } = useFirestoreDocumentSync<number>('settings/financialYearEndDay', LOCAL_STORAGE_FINANCIAL_YEAR_END_DAY_KEY, 31);
+  const { data: savedAmortizationSchedules, setData: setSavedAmortizationSchedules } = useFirestoreCollectionSync<SavedAmortizationSchedule>('savedAmortizationSchedules', LOCAL_STORAGE_SAVED_AMORTIZATION_SCHEDULES_KEY, [], item => item.id);
+  const { data: sessionTimeoutDurationSeconds, setData: setSessionTimeoutDurationSeconds } = useFirestoreDocumentSync<number>('settings/sessionTimeoutDurationSeconds', LOCAL_STORAGE_SESSION_TIMEOUT_DURATION_KEY, DEFAULT_SESSION_TIMEOUT_DURATION_SECONDS);
+  const { data: useDigitalFontForTimers, setData: setUseDigitalFontForTimers } = useFirestoreDocumentSync<boolean>('settings/useDigitalFontForTimers', LOCAL_STORAGE_USE_DIGITAL_FONT_KEY, false);
+  const { data: userCredentials, setData: setUserCredentials } = useFirestoreCollectionSync<UserCredential>('userCredentials', LOCAL_STORAGE_USER_CREDENTIALS_KEY, [], item => item.id);
+  const { data: todos, setData: setTodos } = useFirestoreCollectionSync<TodoItem>('todos', LOCAL_STORAGE_TODOS_KEY, [], item => item.id);
   const [activeMode, setActiveMode] = useState<AppMode>(AppMode.FINANCE);
-  const [dayPlannerEntries, setDayPlannerEntries] = useFirestoreCollectionSync<DayPlannerEntry>('dayPlannerEntries', LOCAL_STORAGE_DAY_PLANNER_ENTRIES_KEY, [], item => item.id);
-  const [subscriptionPlans, setSubscriptionPlans] = useFirestoreCollectionSync<SubscriptionPlan>('subscriptionPlans', LOCAL_STORAGE_SUBSCRIPTION_PLANS_KEY, [], item => item.id);
-  const [rechargePlans, setRechargePlans] = useFirestoreCollectionSync<RechargePlan>('rechargePlans', LOCAL_STORAGE_RECHARGE_PLANS_KEY, [], item => item.id);
-  const [menuItems, setMenuItems] = useFirestoreCollectionSync<MenuItem>('menuItems', LOCAL_STORAGE_MENU_ITEMS_KEY, [], item => item.id);
-  const [salaryDeductions, setSalaryDeductions] = useFirestoreCollectionSync<SalaryDeduction>('salaryDeductions', LOCAL_STORAGE_SALARY_DEDUCTIONS_KEY, [], item => item.id);
-  const [festiveDates, setFestiveDates] = useFirestoreCollectionSync<FestiveDate>('festiveDates', LOCAL_STORAGE_FESTIVE_DATES_KEY, [], item => item.id);
-  const [isBalanceVisible, setIsBalanceVisible] = useFirestoreDocumentSync<boolean>('settings/isBalanceVisible', LOCAL_STORAGE_BALANCE_VISIBLE_KEY, true);
-  const [autoBackupSettings, setAutoBackupSettings] = useFirestoreDocumentSync<AutoBackupSettings>('settings/autoBackupSettings', LOCAL_STORAGE_AUTO_BACKUP_SETTINGS_KEY, { enabled: true, frequency: 'weekly' });
-  const [lastBackupTimestamp, setLastBackupTimestamp] = useFirestoreDocumentSync<number | null>('settings/lastBackupTimestamp', LOCAL_STORAGE_LAST_BACKUP_TIMESTAMP_KEY, null);
-  const [defaultViews, setDefaultViews] = useFirestoreDocumentSync<DefaultViewSettings>('settings/defaultViews', LOCAL_STORAGE_DEFAULT_VIEWS_KEY, { finance: 'form', attendance: 'attendanceList', emi: 'emiDashboard', todo: 'todoList' });
-  const [defaultDashboardPeriod] = useFirestoreDocumentSync<FilterPeriod>('settings/defaultDashboardPeriod', LOCAL_STORAGE_DEFAULT_DASHBOARD_PERIOD_KEY, 'Monthly');
-  const [accountSpecificSettings, setAccountSpecificSettings] = useFirestoreDocumentSync<Record<string, Partial<AccountSpecificSettingsData>>>('settings/accountSpecificSettings', LOCAL_STORAGE_ACCOUNT_SPECIFIC_SETTINGS_KEY, {});
-  const [vaultItems, setVaultItems] = useFirestoreCollectionSync<VaultItem>('vaultItems', LOCAL_STORAGE_VAULT_ITEMS_KEY, [], item => item.id);
-  const [modeLayouts, setModeLayouts] = useFirestoreDocumentSync<AppModeLayouts>('settings/modeLayouts', LOCAL_STORAGE_MODE_LAYOUTS_KEY, {
+  const { data: dayPlannerEntries, setData: setDayPlannerEntries } = useFirestoreCollectionSync<DayPlannerEntry>('dayPlannerEntries', LOCAL_STORAGE_DAY_PLANNER_ENTRIES_KEY, [], item => item.id);
+  const { data: subscriptionPlans, setData: setSubscriptionPlans } = useFirestoreCollectionSync<SubscriptionPlan>('subscriptionPlans', LOCAL_STORAGE_SUBSCRIPTION_PLANS_KEY, [], item => item.id);
+  const { data: rechargePlans, setData: setRechargePlans } = useFirestoreCollectionSync<RechargePlan>('rechargePlans', LOCAL_STORAGE_RECHARGE_PLANS_KEY, [], item => item.id);
+  const { data: menuItems, setData: setMenuItems } = useFirestoreCollectionSync<MenuItem>('menuItems', LOCAL_STORAGE_MENU_ITEMS_KEY, [], item => item.id);
+  const { data: salaryDeductions, setData: setSalaryDeductions } = useFirestoreCollectionSync<SalaryDeduction>('salaryDeductions', LOCAL_STORAGE_SALARY_DEDUCTIONS_KEY, [], item => item.id);
+  const { data: festiveDates, setData: setFestiveDates } = useFirestoreCollectionSync<FestiveDate>('festiveDates', LOCAL_STORAGE_FESTIVE_DATES_KEY, [], item => item.id);
+  const { data: isBalanceVisible, setData: setIsBalanceVisible } = useFirestoreDocumentSync<boolean>('settings/isBalanceVisible', LOCAL_STORAGE_BALANCE_VISIBLE_KEY, true);
+  const { data: autoBackupSettings, setData: setAutoBackupSettings } = useFirestoreDocumentSync<AutoBackupSettings>('settings/autoBackupSettings', LOCAL_STORAGE_AUTO_BACKUP_SETTINGS_KEY, { enabled: true, frequency: 'weekly' });
+  const { data: lastBackupTimestamp, setData: setLastBackupTimestamp } = useFirestoreDocumentSync<number | null>('settings/lastBackupTimestamp', LOCAL_STORAGE_LAST_BACKUP_TIMESTAMP_KEY, null);
+  const { data: defaultViews, setData: setDefaultViews } = useFirestoreDocumentSync<DefaultViewSettings>('settings/defaultViews', LOCAL_STORAGE_DEFAULT_VIEWS_KEY, { finance: 'form', attendance: 'attendanceList', emi: 'emiDashboard', todo: 'todoList' });
+  const { data: defaultDashboardPeriod } = useFirestoreDocumentSync<FilterPeriod>('settings/defaultDashboardPeriod', LOCAL_STORAGE_DEFAULT_DASHBOARD_PERIOD_KEY, 'Monthly');
+  const { data: accountSpecificSettings, setData: setAccountSpecificSettings } = useFirestoreDocumentSync<Record<string, Partial<AccountSpecificSettingsData>>>('settings/accountSpecificSettings', LOCAL_STORAGE_ACCOUNT_SPECIFIC_SETTINGS_KEY, {});
+  const { data: vaultItems, setData: setVaultItems } = useFirestoreCollectionSync<VaultItem>('vaultItems', LOCAL_STORAGE_VAULT_ITEMS_KEY, [], item => item.id);
+  const { data: modeLayouts, setData: setModeLayouts } = useFirestoreDocumentSync<AppModeLayouts>('settings/modeLayouts', LOCAL_STORAGE_MODE_LAYOUTS_KEY, {
     [AppMode.FINANCE]: [
       { id: 'f1', title: 'Record Transaction', sectionKey: 'form', isDefault: true },
       { id: 'f2', title: 'Charts & Trends', sectionKey: 'charts' },
@@ -192,7 +193,13 @@ const App: React.FC = () => {
       { id: 't2', title: 'Day Planner', sectionKey: 'dayPlanner' }
     ]
   });
-  const [isLeftSidebarVisible, setIsLeftSidebarVisible] = useFirestoreDocumentSync<boolean>('settings/isLeftSidebarVisible', 'isLeftSidebarVisible', true);
+  const { data: isLeftSidebarVisible, setData: setIsLeftSidebarVisible } = useFirestoreDocumentSync<boolean>('settings/isLeftSidebarVisible', 'isLeftSidebarVisible', true);
+  const { data: recurringReminders, setData: setRecurringReminders } = useFirestoreCollectionSync<CustomReminder>('customReminders', LOCAL_STORAGE_RECURRING_REMINDERS_KEY, [], item => item.id);
+  const { data: profilePicture, setData: setProfilePicture } = useFirestoreDocumentSync<string | null>('settings/profilePicture', LOCAL_STORAGE_PROFILE_PICTURE_KEY, null);
+  const { data: lockScreenPicture, setData: setLockScreenPicture } = useFirestoreDocumentSync<string | null>('settings/lockScreenPicture', LOCAL_STORAGE_LOCK_SCREEN_PICTURE_KEY, null);
+  const { data: headerBackgroundImage, setData: setHeaderBackgroundImage } = useFirestoreDocumentSync<string | null>('settings/headerBackgroundImage', LOCAL_STORAGE_HEADER_BACKGROUND_IMAGE_KEY, null);
+  const { data: loginBackground, setData: setLoginBackground } = useFirestoreDocumentSync<string | null>('settings/loginBackground', LOCAL_STORAGE_LOGIN_BACKGROUND_KEY, null);
+  const { data: dbMasterKey, setData: setDbMasterKey } = useFirestoreDocumentSync<string | null>('settings/dbMasterKey', LOCAL_STORAGE_DATABASE_PASSWORD_KEY, null);
   const [loggedInUser, setLoggedInUser] = useLocalStorage<UserCredential | null>('financeTrackerLoggedInUser', null); // Keep local for auth
 
   // Listen to Firebase Auth state changes
@@ -221,9 +228,9 @@ const App: React.FC = () => {
     });
     return () => unsubscribe();
   }, [setLoggedInUser, userCredentials]);
-  const [appPin, setAppPin, isAppPinLoading] = useFirestoreDocumentSync<string | null>('settings/appPin', LOCAL_STORAGE_APP_PIN_KEY, null);
-  const [lockType, setLockType, isLockTypeLoading] = useFirestoreDocumentSync<'pin' | 'pattern'>('settings/lockType', LOCAL_STORAGE_APP_LOCK_TYPE_KEY, 'pin');
-  const [appPattern, setAppPattern, isAppPatternLoading] = useFirestoreDocumentSync<string | null>('settings/appPattern', LOCAL_STORAGE_APP_PATTERN_KEY, null);
+  const { data: appPin, setData: setAppPin, loading: isAppPinLoading } = useFirestoreDocumentSync<string | null>('settings/appPin', LOCAL_STORAGE_APP_PIN_KEY, null);
+  const { data: lockType, setData: setLockType, loading: isLockTypeLoading } = useFirestoreDocumentSync<'pin' | 'pattern'>('settings/lockType', LOCAL_STORAGE_APP_LOCK_TYPE_KEY, 'pin');
+  const { data: appPattern, setData: setAppPattern, loading: isAppPatternLoading } = useFirestoreDocumentSync<string | null>('settings/appPattern', LOCAL_STORAGE_APP_PATTERN_KEY, null);
 
   const currentLayout = useMemo(() => modeLayouts[activeMode] || [], [modeLayouts, activeMode]);
 
@@ -250,7 +257,7 @@ const App: React.FC = () => {
   const [activePeriodLabel, setActivePeriodLabel] = useState<FilterPeriod>('Monthly');
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
   const adminMenuRef = useRef<HTMLDivElement>(null);
-  const [initialCashbackBalance, setInitialCashbackBalance] = useFirestoreDocumentSync<number>('settings/initialCashbackBalance', 'initial_cashback_balance', 0);
+  const { data: initialCashbackBalance, setData: setInitialCashbackBalance } = useFirestoreDocumentSync<number>('settings/initialCashbackBalance', 'initial_cashback_balance', 0);
   const [isAppLocked, setIsAppLocked] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isTransactionTypeConfirmed, setIsTransactionTypeConfirmed] = useState(false);
@@ -273,7 +280,7 @@ const App: React.FC = () => {
   const [isBenefitPassbookOpen, setIsBenefitPassbookOpen] = useState(false);
   const [emiSuccessData, setEmiSuccessData] = useState<{ schedule: SavedAmortizationSchedule, amount: number, isFullPayment: boolean } | null>(null);
   
-  const [overlaySettings, setOverlaySettings] = useFirestoreDocumentSync<OverlaySettings>('settings/overlaySettings', LOCAL_STORAGE_OVERLAY_SETTINGS_KEY, {
+  const { data: overlaySettings, setData: setOverlaySettings } = useFirestoreDocumentSync<OverlaySettings>('settings/overlaySettings', LOCAL_STORAGE_OVERLAY_SETTINGS_KEY, {
     enabledFeatures: ['passbook', 'documentVault']
   });
   const [isFloatingOverlayOpen, setIsFloatingOverlayOpen] = useState(false);
@@ -335,7 +342,7 @@ const App: React.FC = () => {
         const dateStr = `${festive.date}T00:00:00`;
         reminders.push({ type: 'festive', name: festive.name, dueDate: dateStr, originalId: festive.id });
     });
-    return reminders.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+    return reminders.sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
   }, [savedAmortizationSchedules, subscriptionPlans, rechargePlans, todos, dayPlannerEntries, festiveDates]);
 
   // Update session timeout on user activity
@@ -809,7 +816,7 @@ const App: React.FC = () => {
         const schedule = prev[scheduleIndex];
         const emiTx = allTransactions
           .filter(t => t.emiId === emiId && !t.isDeleted && t.category === ExpenseCategory.EMI)
-          .sort((a, b) => a.date.localeCompare(b.date));
+          .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
         
         const hasFullPayment = emiTx.some(t => t.isFullEmiPayment);
         const newStatus: Record<number, boolean> = {};
@@ -1726,7 +1733,7 @@ const App: React.FC = () => {
     { key: 'dataManagement', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO], component: <DataManagementComponent onExportAllData={handleExportAllData} onImportData={handleImportData} onClearAllData={handleClearAllData} addToast={addToast} /> },
     { key: 'appSettings', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO], component: <AppSettingsComponent appTitle={appTitle} setAppTitle={setAppTitle} customBrandColor={customBrandColor} setCustomBrandColor={setCustomBrandColor} monthlySalary={monthlySalary} onSetMonthlySalary={setMonthlySalary} selectedWeeklyOffDay={selectedWeeklyOffDay} onSetSelectedWeeklyOffDay={setSelectedWeeklyOffDay} monthlyOffLimits={safeMonthlyOffLimits} onSetMonthlyOffLimit={handleSetMonthlyOffLimit} financialMonthStartDay={financialMonthStartDay} onSetFinancialMonthStartDay={setFinancialMonthStartDay} financialMonthEndDay={financialMonthEndDay} onSetFinancialMonthEndDay={setFinancialMonthEndDay} financialYearStartMonth={financialYearStartMonth} financialYearStartDay={financialYearStartDay} financialYearEndMonth={financialYearEndMonth} financialYearEndDay={financialYearEndDay} onSetFinancialYear={handleSetFinancialYear} sessionTimeoutDurationSeconds={sessionTimeoutDurationSeconds} setSessionTimeoutDurationSeconds={setSessionTimeoutDurationSeconds} useDigitalFontForTimers={useDigitalFontForTimers} setUseDigitalFontForTimers={setUseDigitalFontForTimers} isDynamicIslandEnabled={false} onSetIsDynamicIslandEnabled={() => {}} defaultViews={defaultViews} onSetDefaultViews={setDefaultViews} defaultDashboardPeriod={'Daily'} onSetDefaultDashboardPeriod={() => {}} addToast={addToast} loggedInRole={loggedInRole} onChangeAdminPassword={() => true} autoBackupSettings={autoBackupSettings} setAutoBackupSettings={setAutoBackupSettings} lastBackupTimestamp={lastBackupTimestamp} onBackupNow={handleExportAllData} salaryDeductions={safeSalaryDeductions} onAddSalaryDeduction={handleAddSalaryDeduction} onDeleteSalaryDeduction={handleDeleteSalaryDeduction} festiveDates={safeFestiveDates} onAddFestiveDate={handleAddFestiveDate} onDeleteFestiveDate={handleDeleteFestiveDate} modeLayouts={modeLayouts} onSetModeLayouts={setModeLayouts} username={loggedInUser?.username || 'User'} overlaySettings={overlaySettings} onSetOverlaySettings={setOverlaySettings} /> },
     { key: 'recycleBin', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO], component: <RecycleBinComponent allTransactions={safeTransactions} allAccounts={safeAccounts} allSchedules={safeSavedAmortizationSchedules} allUserCredentials={safeUserCredentials} allTodos={safeTodos} allDayPlannerEntries={safeDayPlannerEntries} allSubscriptionPlans={safeSubscriptionPlans} allRechargePlans={safeRechargePlans} allMenuItems={safeMenuItems} allVaultItems={safeVaultItems} onRestoreItem={handleRestoreItem} onPermanentlyDeleteItem={handlePermanentlyDeleteItem} onEmptyRecycleBin={handleEmptyRecycleBin} loggedInRole={loggedInRole} /> },
-    { key: 'viewRawLocalStorageTable', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO], component: <ViewRawLocalStorageTable /> },
+    { key: 'viewRawLocalStorageTable', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO], component: <ViewRawLocalStorageTable dbMasterKey={dbMasterKey} setDbMasterKey={setDbMasterKey} /> },
     { key: 'snapshot', modes: [AppMode.FINANCE], component: <Dashboard accounts={safeAccounts} transactions={currentPeriodTransactions} activeAccount={safeAccounts.find(a => a.id === activeAccountId)} onEditTransaction={(tx) => { setTransactionToEdit(tx); handleShowSection('form'); }} budgetSettings={safeBudgetSettings} financialMonthStartDay={financialMonthStartDay} financialMonthEndDay={financialMonthEndDay} openingBalance={openingBalanceForPassbook} onShowSection={handleShowSection} /> }
   ], [safeTransactions, currentPeriodTransactions, safeAccounts, activeAccountId, safeMenuItems, suggestedTransactionToFill, transactionToEdit, scheduleToEdit, safeSavedAmortizationSchedules, safeTodos, safeDayPlannerEntries, safeAttendanceEntries, attendanceHistory, safeMonthlyOffLimits, monthlySalary, safeSalaryDeductions, safeSubscriptionPlans, safeRechargePlans, safeVaultItems, safeNotificationHistory, safeFestiveDates, safeUserCredentials, appTitle, customBrandColor, setAppTitle, setCustomBrandColor, addToast, addTransactionHandler, handleShowSection, selectedWeeklyOffDay, financialMonthStartDay, financialMonthEndDay, financialYearStartMonth, financialYearStartDay, financialYearEndMonth, financialYearEndDay, sessionTimeoutDurationSeconds, useDigitalFontForTimers, defaultViews, autoBackupSettings, handleSetMonthlyOffLimit, handleSetFinancialYear, loggedInRole, setMonthlySalary, setSelectedWeeklyOffDay, setFinancialMonthStartDay, setFinancialMonthEndDay, setSessionTimeoutDurationSeconds, setUseDigitalFontForTimers, setDefaultViews, setAutoBackupSettings, incomeCategoriesList, expenseCategories, accountSpecificSettings, handleExportAllData, handleImportData, handleClearAllData, handleResetLiquidityBalances, lastBackupTimestamp, handleLoadSchedule, handleDeleteSchedule, dashboardStartDate, dashboardEndDate, activePeriodLabel, openingBalanceForPassbook, handleImportTransactions, appPin, lockType, appPattern, handleRecoverLock, safeBudgetSettings, handleSetBudget, handleDeleteBudget, handleAddIncomeCategory, handleEditIncomeCategory, handleDeleteIncomeCategory, handleAddExpenseCategory, handleEditExpenseCategory, handleDeleteExpenseCategory, handleUpdateTransaction, handleDeleteTransaction, pagerIndex, setPagerIndex, overlaySettings, setOverlaySettings]);
 
@@ -1888,7 +1895,7 @@ const App: React.FC = () => {
                     onViewSubscriptionTracker={() => { handleModeChange(AppMode.TODO); handleShowSection('subscriptionTracker'); }} 
                     onViewRechargeTracker={() => { handleModeChange(AppMode.TODO); handleShowSection('rechargeTracker'); }}
                     transactions={safeTransactions} 
-                    recurringReminders={[]} 
+                    recurringReminders={recurringReminders} 
                     savedAmortizationSchedules={safeSavedAmortizationSchedules} 
                     onViewHistory={() => { handleModeChange(AppMode.FINANCE); handleShowSection('notificationHistory'); }}
                   />

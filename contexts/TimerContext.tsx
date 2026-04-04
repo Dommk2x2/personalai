@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import useLocalStorage from '../hooks/useLocalStorage';
+import { useFirestoreDocumentSync } from '../hooks/useFirestoreDocumentSync';
 import { LOCAL_STORAGE_TIMER_TITLE_KEY } from '../constants';
 import { showNotification, requestNotificationPermission } from '../utils/notificationUtils';
 
@@ -21,7 +21,7 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [endTime, setEndTime] = useState<number | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
-  const [timerTitle, setTimerTitle] = useLocalStorage<string>(LOCAL_STORAGE_TIMER_TITLE_KEY, 'Utility Timer');
+  const { data: timerTitle, setData: setTimerTitle } = useFirestoreDocumentSync<string>('settings/timerTitle', LOCAL_STORAGE_TIMER_TITLE_KEY, 'Utility Timer');
   const intervalRef = useRef<number | null>(null);
 
   // Request notification permission

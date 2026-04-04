@@ -27,7 +27,7 @@ interface PassbookDisplayEntry {
   runningBalance: number;
 }
 
-const ITEMS_PER_PAGE = 15;
+const ITEMS_PER_PAGE = 50;
 
 const PortraitIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
@@ -82,10 +82,10 @@ export const PassbookView: React.FC<PassbookViewProps> = ({ transactions, active
       }
 
       if (a.description !== b.description) {
-          return a.description.localeCompare(b.description);
+          return (a.description || '').localeCompare(b.description || '');
       }
 
-      return a.id.localeCompare(b.id);
+      return (a.id || '').localeCompare(b.id || '');
     });
 
     let currentBalance = openingBalance;

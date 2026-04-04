@@ -55,6 +55,7 @@ const HorizontalPager: React.FC<HorizontalPagerProps> = ({ children, page, onPag
         className="flex w-full"
         animate={{ x: `-${currentPage * 100}%` }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        layout
       >
         {children.map((child, index) => (
           <div key={index} className="w-full flex-shrink-0 min-w-full">

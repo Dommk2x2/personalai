@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useTimer } from '../contexts/TimerContext';
 import { ClockIcon, PlayIcon, PauseIcon, ArrowPathIcon, XIcon, PlusIcon, CheckCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, CogIcon, SaveIcon } from './Icons';
 import { hexToRgba } from '../utils/colorUtils';
-import useLocalStorage from '../hooks/useLocalStorage';
+import { useFirestoreDocumentSync } from '../hooks/useFirestoreDocumentSync';
 import { LOCAL_STORAGE_TIMER_TITLE_KEY, LOCAL_STORAGE_TIMER_BG_COLOR_KEY, LOCAL_STORAGE_TIMER_RUNNING_COLOR_KEY } from '../constants';
 
 interface HeaderTimerProps {
@@ -21,8 +21,8 @@ const HeaderTimer: React.FC<HeaderTimerProps> = ({ useDigitalFont }) => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     
     // Persistent Customization State
-    const [timerBgColor, setTimerBgColor] = useLocalStorage<string>(LOCAL_STORAGE_TIMER_BG_COLOR_KEY, '');
-    const [timerRunningColor, setTimerRunningColor] = useLocalStorage<string>(LOCAL_STORAGE_TIMER_RUNNING_COLOR_KEY, '#22c55e');
+    const { data: timerBgColor, setData: setTimerBgColor } = useFirestoreDocumentSync<string>('settings/timerBgColor', LOCAL_STORAGE_TIMER_BG_COLOR_KEY, '');
+    const { data: timerRunningColor, setData: setTimerRunningColor } = useFirestoreDocumentSync<string>('settings/timerRunningColor', LOCAL_STORAGE_TIMER_RUNNING_COLOR_KEY, '#22c55e');
 
     const popoverRef = useRef<HTMLDivElement>(null);
 

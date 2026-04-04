@@ -676,7 +676,7 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
                                     className={`${inputBaseClasses} appearance-none pr-10`}
                                 >
                                     <option value="">Select a Category</option>
-                                    {[...(type === TransactionType.EXPENSE ? expenseCategories : incomeCategories)].sort((a, b) => a.localeCompare(b)).map(cat => (
+                                    {[...(type === TransactionType.EXPENSE ? expenseCategories : incomeCategories)].sort((a, b) => (a || '').localeCompare(b || '')).map(cat => (
                                         <option key={cat} value={cat}>{cat}</option>
                                     ))}
                                 </select>
@@ -713,7 +713,7 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
                                                 className={`${inputBaseClasses} appearance-none pr-10`}
                                             >
                                                 <option value="">Select an EMI</option>
-                                                {[...summaryData.activeEmis].sort((a, b) => a.loanName.localeCompare(b.loanName)).map(emi => {
+                                                {[...summaryData.activeEmis].sort((a, b) => (a.loanName || '').localeCompare(b.loanName || '')).map(emi => {
                                                     const firstUnpaidIndex = emi.schedule.findIndex((_, index) => !emi.paymentStatus?.[index + 1]);
                                                     const outstanding = firstUnpaidIndex !== -1 ? emi.schedule[firstUnpaidIndex].beginningBalance : 0;
                                                     return (
@@ -898,7 +898,7 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
                                     </div>
                                     <div className="flex-grow">
                                         {[...summaryData.filteredTransactions]
-                                            .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''))
+                                            .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || ''))
                                             .slice(0, 7)
                                             .map((tx, idx) => {
                                                 const isIncome = tx.type === TransactionType.INCOME;

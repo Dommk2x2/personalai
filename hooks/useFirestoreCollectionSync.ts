@@ -8,7 +8,7 @@ export function useFirestoreCollectionSync<T>(
   localStorageKey: string,
   initialValue: T[],
   getId: (item: T) => string
-): [T[], Dispatch<SetStateAction<T[]>>, boolean] {
+): { data: T[]; setData: Dispatch<SetStateAction<T[]>>; loading: boolean } {
   const [storedValue, setStoredValue] = useState<T[]>(() => {
     try {
       const item = window.localStorage.getItem(localStorageKey);
@@ -134,5 +134,5 @@ export function useFirestoreCollectionSync<T>(
     });
   }, [user, collectionName, localStorageKey, getId]);
 
-  return [storedValue, setValue, loading];
+  return { data: storedValue, setData: setValue, loading };
 }

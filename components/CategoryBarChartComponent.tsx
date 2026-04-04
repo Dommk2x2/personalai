@@ -54,9 +54,14 @@ const CategoryBarChartComponent: React.FC<CategoryBarChartComponentProps> = ({ t
   
   const currencyFormatter = (value: number) => new Intl.NumberFormat('en-IN', { style: 'decimal' }).format(value);
 
+  const COLORS = [
+    '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
+    '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1'
+  ];
+
   if (data.length === 0) {
     return (
-      <div className="bg-bg-secondary-themed p-6 rounded-xl shadow-lg text-center text-text-muted-themed h-full flex flex-col justify-center items-center min-h-[400px]">
+      <div className="bg-bg-secondary-themed p-6 rounded-xl shadow-lg text-center text-text-muted-themed h-full flex flex-col justify-center items-center min-h-[500px]">
         <img src="https://picsum.photos/seed/categorybarchart/300/200?grayscale" alt="Bar chart placeholder" className="mx-auto mb-4 rounded-lg w-32 h-24 sm:w-40 sm:h-32 md:w-48 md:h-32 object-cover opacity-70 dark:opacity-50" />
         <p>No categorized data for bar chart.</p>
         <p className="text-sm">Add transactions with categories to see a summary here.</p>
@@ -65,7 +70,7 @@ const CategoryBarChartComponent: React.FC<CategoryBarChartComponentProps> = ({ t
   }
 
   return (
-    <div className="bg-bg-secondary-themed p-4 sm:p-6 pt-12 rounded-xl shadow-lg min-h-[450px]">
+    <div className="bg-bg-secondary-themed p-4 sm:p-6 pt-12 rounded-xl shadow-lg min-h-[600px]">
       <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
         <div className="flex items-center gap-2">
             {onBack && (
@@ -98,23 +103,23 @@ const CategoryBarChartComponent: React.FC<CategoryBarChartComponentProps> = ({ t
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={350}>
+      <ResponsiveContainer width="100%" height={500}>
           <BarChart
           data={filteredData}
           margin={{
               top: 20,
               right: 15,
-              left: -10,
-              bottom: 80, // Increased bottom margin for angled labels
+              left: 0,
+              bottom: 100, // Increased bottom margin for angled labels
           }}
           >
-          <CartesianGrid strokeDasharray="3 3" stroke={currentThemeColors.chartGridColor} />
+          <CartesianGrid strokeDasharray="3 3" stroke={currentThemeColors.chartGridColor} vertical={false} />
           <XAxis 
               dataKey="name" 
-              tick={{ fill: currentThemeColors.chartAxisColor, fontSize: 10 }}
+              tick={{ fill: currentThemeColors.chartAxisColor, fontSize: 11, fontWeight: 'bold' }}
               angle={-45}
               textAnchor="end"
-              height={70} // Explicit height for safety
+              height={100} // Explicit height for safety
               interval={0} // Ensure all labels are shown
           />
           <YAxis tickFormatter={formatCurrencyTick} tick={{ fill: currentThemeColors.chartAxisColor, fontSize: 10 }} dx={-5} />
@@ -125,9 +130,23 @@ const CategoryBarChartComponent: React.FC<CategoryBarChartComponentProps> = ({ t
               itemStyle={{ color: currentThemeColors.chartTooltipText }}
               labelStyle={{ color: currentThemeColors.chartTooltipText, marginBottom: '4px', fontWeight: 'bold', fontSize: '13px' }}
           />
-          <Legend wrapperStyle={{ fontSize: '11px', color: currentThemeColors.chartLegendText }} verticalAlign="top" align="right" />
-          {(filter === 'all' || filter === 'income') && <Bar dataKey="income" fill={currentThemeColors.chartIncome} name="Income" radius={[4, 4, 0, 0]} />}
-          {(filter === 'all' || filter === 'expense') && <Bar dataKey="expense" fill={currentThemeColors.chartExpense} name="Expense" radius={[4, 4, 0, 0]} />}
+          <Legend wrapperStyle={{ fontSize: '11px', color: currentThemeColors.chartLegendText, paddingTop: '20px' }} verticalAlign="top" align="right" />
+          {(filter === 'all' || filter === 'income') && (
+            <Bar 
+              dataKey="income" 
+              name="Income" 
+              radius={[4, 4, 0, 0]}
+              fill={currentThemeColors.chartIncome}
+            />
+          )}
+          {(filter === 'all' || filter === 'expense') && (
+            <Bar 
+              dataKey="expense" 
+              name="Expense" 
+              radius={[4, 4, 0, 0]}
+              fill={currentThemeColors.chartExpense}
+            />
+          )}
           </BarChart>
       </ResponsiveContainer>
     </div>

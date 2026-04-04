@@ -232,6 +232,24 @@
       },
       "required": ["id", "name", "amount"]
     },
+    "CustomReminder": {
+      "title": "CustomReminder",
+      "description": "Custom recurring reminders",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "accountId": { "type": "string" },
+        "name": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "reminderDay": { "type": "number" },
+        "startDate": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "isDeleted": { "type": "boolean" },
+        "deletedAt": { "type": "string" }
+      },
+      "required": ["id", "accountId", "name", "amount", "type", "reminderDay", "startDate", "createdAt"]
+    },
     "FestiveDate": {
       "title": "FestiveDate",
       "description": "Festive dates for reminders",
@@ -301,6 +319,10 @@
     "users/{userId}/salaryDeductions/{deductionId}": {
       "schema": { "$ref": "#/entities/SalaryDeduction" },
       "description": "User's salary deductions"
+    },
+    "users/{userId}/customReminders/{reminderId}": {
+      "schema": { "$ref": "#/entities/CustomReminder" },
+      "description": "User's custom recurring reminders"
     },
     "users/{userId}/festiveDates/{festiveId}": {
       "schema": { "$ref": "#/entities/FestiveDate" },

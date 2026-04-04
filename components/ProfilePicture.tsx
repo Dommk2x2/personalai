@@ -23,7 +23,7 @@ interface ProfilePictureProps {
 type TabType = 'upload' | 'emoji' | 'initials';
 
 const ProfilePicture: React.FC<ProfilePictureProps> = ({ username, size = 'w-12 h-12', className = '', type = 'general' as 'general' | 'lockscreen' }) => {
-  const [profilePicture, setProfilePicture] = useProfilePicture(username, type);
+  const { data: profilePicture, setData: setProfilePicture } = useProfilePicture(username, type);
 
   // Sync to legacy key for other components
   React.useEffect(() => {

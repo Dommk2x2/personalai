@@ -35,7 +35,7 @@ const Summary: React.FC<SummaryProps> = ({ periodLabel, income, expenses, closin
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
       {summaryCards.map((card, index) => (
-        <div key={index} className="bg-bg-secondary-themed p-4 rounded-xl shadow-md flex flex-col transition-transform duration-200 hover:scale-105 hover:shadow-lg border border-transparent hover:border-bg-accent-themed">
+        <div key={index} className="bg-bg-secondary-themed p-4 rounded-xl shadow-md flex flex-col h-full transition-transform duration-200 hover:scale-105 hover:shadow-lg border border-transparent hover:border-bg-accent-themed">
           <div className="flex items-center mb-3">
             <div
               className="p-2.5 rounded-lg mr-4"
