@@ -122,7 +122,16 @@ const TransactionList: React.FC<TransactionListProps> = ({
         return categoryMatch && searchMatch && yearMatch && monthMatch;
     });
 
-    return [...filtered].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return [...filtered].sort((a, b) => {
+        const dateA = new Date(a.date + 'T00:00:00').getTime();
+        const dateB = new Date(b.date + 'T00:00:00').getTime();
+        if (dateB !== dateA) return dateB - dateA;
+
+        if (a.createdAt && b.createdAt) {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+        return (b.id || '').localeCompare(a.id || '');
+    });
   }, [safeTransactions, searchQuery, yearFilter, monthFilter, categoryFilter]);
 
   const totalPages = Math.ceil(filteredAndSortedTransactions.length / ITEMS_PER_PAGE);

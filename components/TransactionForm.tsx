@@ -49,6 +49,12 @@ interface TransactionFormProps {
   emiSchedules: SavedAmortizationSchedule[];
   totalCashbackBalance?: number;
   appTitle: string;
+  onOpenGlobalFilter?: () => void;
+  globalStartDate?: string | null;
+  globalEndDate?: string | null;
+  globalPeriodLabel?: string;
+  onPrevMonth?: () => void;
+  onNextMonth?: () => void;
 }
 
 const TransactionForm: React.FC<TransactionFormProps> = (props) => {
@@ -85,6 +91,12 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
     emiSchedules,
     totalCashbackBalance = 0,
     appTitle,
+    onOpenGlobalFilter,
+    globalStartDate,
+    globalEndDate,
+    globalPeriodLabel,
+    onPrevMonth,
+    onNextMonth,
   } = props;
   const { currentThemeColors } = useTheme();
 
@@ -110,13 +122,15 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
   const [isUnbudgetedFlipped, setIsUnbudgetedFlipped] = useState(false);
   
   const filteredTransactions = useMemo(() => {
-    const selectedMonth = date.substring(0, 7); // YYYY-MM
+    const start = globalStartDate || (date.substring(0, 7) + '-01');
+    const end = globalEndDate || (date.substring(0, 7) + '-31'); // Rough end for month
+
     return allTransactions.filter(tx => {
         const matchesAccount = activeAccountId ? tx.accountId === activeAccountId : true;
-        const matchesDate = tx.date.substring(0, 7) === selectedMonth;
+        const matchesDate = tx.date >= start && tx.date <= end;
         return matchesAccount && matchesDate && !tx.isDeleted;
     });
-  }, [allTransactions, activeAccountId, date]);
+  }, [allTransactions, activeAccountId, date, globalStartDate, globalEndDate]);
   
   // Suggestion State
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -285,8 +299,9 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
   const summaryData = useMemo(() => {
     const identifier = getFinancialMonthIdentifier(new Date(date), financialMonthStartDay);
     const { start: startRange, end: endRange } = getPeriodDateRange(BudgetPeriod.MONTHLY, identifier, { startDay: financialMonthStartDay, endDay: financialMonthEndDay });
-    const startDate = formatDateToYYYYMMDD(startRange);
-    const endDate = formatDateToYYYYMMDD(endRange);
+    
+    const startDate = globalStartDate || formatDateToYYYYMMDD(startRange);
+    const endDate = globalEndDate || formatDateToYYYYMMDD(endRange);
     
     // Calculate opening balance before startDate
     const calculatedOpeningBalance = allTransactions
@@ -453,10 +468,22 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
         >
             <div className="flex flex-wrap justify-between items-center gap-y-4 mb-8">
                 <div className="flex items-center gap-4">
-                    <div className="p-2 rounded-xl bg-brand-primary/10">
+                    <div 
+                        className={`p-2 rounded-xl bg-brand-primary/10 transition-all ${(!isTypeConfirmed || !type) ? 'cursor-pointer hover:bg-brand-primary/20 active:scale-95' : ''}`}
+                        onClick={() => {
+                            if (!isTypeConfirmed || !type) {
+                                console.log('Global filter area clicked');
+                                onOpenGlobalFilter?.();
+                            }
+                        }}
+                        title={(!isTypeConfirmed || !type) ? "Open Global Date Filter" : undefined}
+                    >
                         {isTypeConfirmed && type ? (
                             <button 
-                                onClick={() => !isEditing && setIsTypeConfirmed(false)}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!isEditing) setIsTypeConfirmed(false);
+                                }}
                                 className="p-1 hover:bg-bg-accent-themed rounded-lg transition-colors"
                                 title="Change Type"
                                 disabled={isEditing}
@@ -1042,7 +1069,9 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
                             activeAccount={accounts.find(a => a.id === activeAccountId)}
                             appTitle={appTitle}
                             openingBalance={summaryData.openingBalance}
-                            periodLabel={formatDateDisplay(summaryData.startDate) + ' - ' + formatDateDisplay(summaryData.endDate)}
+                            periodLabel={globalPeriodLabel || (formatDateDisplay(summaryData.startDate) + ' - ' + formatDateDisplay(summaryData.endDate))}
+                            onPrevMonth={onPrevMonth}
+                            onNextMonth={onNextMonth}
                         />
                     </div>
                 </motion.div>

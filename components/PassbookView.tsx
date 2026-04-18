@@ -14,6 +14,8 @@ interface PassbookViewProps {
   appTitle: string;
   openingBalance: number;
   periodLabel: string;
+  onPrevMonth?: () => void;
+  onNextMonth?: () => void;
 }
 
 interface PassbookDisplayEntry {
@@ -41,7 +43,15 @@ const LandscapeIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
-export const PassbookView: React.FC<PassbookViewProps> = ({ transactions, activeAccount, appTitle, openingBalance, periodLabel }) => {
+export const PassbookView: React.FC<PassbookViewProps> = ({ 
+  transactions, 
+  activeAccount, 
+  appTitle, 
+  openingBalance, 
+  periodLabel,
+  onPrevMonth,
+  onNextMonth
+}) => {
   const { currentThemeColors } = useTheme();
   const [currentPage, setCurrentPage] = useState(1);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
@@ -77,14 +87,14 @@ export const PassbookView: React.FC<PassbookViewProps> = ({ transactions, active
         return dateA - dateB; 
       }
 
-      if (a.type !== b.type) {
-        return a.type === 'income' ? -1 : 1;
+      // Priority: Entry order (createdAt)
+      if (a.createdAt && b.createdAt) {
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        if (timeA !== timeB) return timeA - timeB;
       }
 
-      if (a.description !== b.description) {
-          return (a.description || '').localeCompare(b.description || '');
-      }
-
+      // Fallback to ID
       return (a.id || '').localeCompare(b.id || '');
     });
 
@@ -104,14 +114,15 @@ export const PassbookView: React.FC<PassbookViewProps> = ({ transactions, active
           runningBalance: currentBalance,
         };
       } else { 
-        currentBalance -= tx.amount;
+        const netAmount = tx.amount - (tx.couponUsed || 0);
+        currentBalance -= netAmount;
         return {
           id: tx.id,
           date: tx.date,
           description: tx.description,
           category: tx.category,
           credit: undefined,
-          debit: tx.amount,
+          debit: netAmount,
           previousBalance,
           runningBalance: currentBalance,
         };
@@ -240,10 +251,30 @@ export const PassbookView: React.FC<PassbookViewProps> = ({ transactions, active
               </button>
           </div>
         </div>
-        <div className="mt-3 text-sm text-text-muted-themed">
+        <div className="mt-3 text-sm text-text-muted-themed flex items-center gap-2">
             <span className="font-bold text-text-base-themed">{accountName || 'All Accounts'}</span>
             <span className="mx-2 text-border-primary">|</span>
-            <span className="font-medium">{periodLabel}</span>
+            <div className="flex items-center gap-1">
+                {onPrevMonth && (
+                    <button 
+                        onClick={onPrevMonth}
+                        className="p-1 hover:bg-bg-accent-themed rounded-md transition-colors text-brand-primary"
+                        title="Previous Month"
+                    >
+                        <ChevronLeftIcon className="w-4 h-4" />
+                    </button>
+                )}
+                <span className="font-medium">{periodLabel}</span>
+                {onNextMonth && (
+                    <button 
+                        onClick={onNextMonth}
+                        className="p-1 hover:bg-bg-accent-themed rounded-md transition-colors text-brand-primary"
+                        title="Next Month"
+                    >
+                        <ChevronRightIcon className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
         </div>
       </div>
 

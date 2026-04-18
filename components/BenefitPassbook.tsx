@@ -67,7 +67,16 @@ export const BenefitPassbook: React.FC<BenefitPassbookProps> = ({ transactions, 
 
   const benefitEntries: BenefitEntry[] = useMemo(() => {
     const filtered = transactions.filter(t => !t.isDeleted && ((t.cashbackAmount && t.cashbackAmount > 0) || (t.couponUsed && t.couponUsed > 0)));
-    const sorted = [...filtered].sort((a, b) => new Date(a.date + 'T00:00:00').getTime() - new Date(b.date + 'T00:00:00').getTime());
+    const sorted = [...filtered].sort((a, b) => {
+      const dateA = new Date(a.date + 'T00:00:00').getTime();
+      const dateB = new Date(b.date + 'T00:00:00').getTime();
+      if (dateA !== dateB) return dateA - dateB;
+      
+      if (a.createdAt && b.createdAt) {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      return (a.id || '').localeCompare(b.id || '');
+    });
 
     let currentBalance = initialCashback;
     return sorted.map(tx => {

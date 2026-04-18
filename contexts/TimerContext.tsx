@@ -16,13 +16,19 @@ interface TimerContextType {
 
 const TimerContext = createContext<TimerContextType | undefined>(undefined);
 
-export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const TimerProvider: React.FC<{ children: React.ReactNode; onFinish?: (title: string) => void }> = ({ children, onFinish }) => {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [endTime, setEndTime] = useState<number | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const { data: timerTitle, setData: setTimerTitle } = useFirestoreDocumentSync<string>('settings/timerTitle', LOCAL_STORAGE_TIMER_TITLE_KEY, 'Utility Timer');
   const intervalRef = useRef<number | null>(null);
+
+  // Use a ref for onFinish to avoid dependency issues if it's not memoized
+  const onFinishRef = useRef(onFinish);
+  useEffect(() => {
+    onFinishRef.current = onFinish;
+  }, [onFinish]);
 
   // Request notification permission
   useEffect(() => {
@@ -47,6 +53,7 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setIsFinished(true);
             setEndTime(null);
             showNotification('Timer Finished', `${timerTitle} has completed!`);
+            if (onFinishRef.current) onFinishRef.current(timerTitle);
           }
         }
       }, 1000);

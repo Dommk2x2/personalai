@@ -16,6 +16,7 @@ interface DateFilterProps {
   financialYearEndMonth: number;
   financialYearEndDay: number;
   activeMode: AppMode;
+  initialDate?: Date;
 }
 
 const DateFilter: React.FC<DateFilterProps> = ({ 
@@ -28,14 +29,15 @@ const DateFilter: React.FC<DateFilterProps> = ({
   financialYearEndMonth,
   financialYearEndDay,
   activeMode,
+  initialDate,
 }) => {
   const { currentThemeColors } = useTheme();
   const [activePeriod, setActivePeriod] = useState<FilterPeriod>(defaultPeriod);
-  const [targetDate, setTargetDate] = useState(new Date());
+  const [targetDate, setTargetDate] = useState(initialDate || new Date());
   
   // Custom date state
-  const [customStartDate, setCustomStartDate] = useState(formatDateToYYYYMMDD(new Date()));
-  const [customEndDate, setCustomEndDate] = useState(formatDateToYYYYMMDD(new Date()));
+  const [customStartDate, setCustomStartDate] = useState(formatDateToYYYYMMDD(initialDate || new Date()));
+  const [customEndDate, setCustomEndDate] = useState(formatDateToYYYYMMDD(initialDate || new Date()));
 
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -43,6 +45,20 @@ const DateFilter: React.FC<DateFilterProps> = ({
   useEffect(() => {
     setActivePeriod(defaultPeriod);
   }, [defaultPeriod]);
+
+  const lastInitialDateRef = useRef<string>('');
+
+  useEffect(() => {
+    if (initialDate) {
+      const initialStr = formatDateToYYYYMMDD(initialDate);
+      if (lastInitialDateRef.current !== initialStr) {
+        lastInitialDateRef.current = initialStr;
+        setTargetDate(initialDate);
+        setCustomStartDate(initialStr);
+        setCustomEndDate(initialStr);
+      }
+    }
+  }, [initialDate]);
 
   const getFinancialYearStartYear = (date: Date, startMonth: number, startDay: number): number => {
     const startOfFinYearInCurrentYear = new Date(date.getFullYear(), startMonth - 1, startDay);
@@ -86,9 +102,16 @@ const DateFilter: React.FC<DateFilterProps> = ({
     }
   }, [financialMonthStartDay, financialMonthEndDay, financialYearStartMonth, financialYearStartDay, financialYearEndMonth, financialYearEndDay, customStartDate, customEndDate]);
   
+  const lastReportedRange = useRef<string>('');
+
   useEffect(() => {
     const [start, end] = calculateDateRange(activePeriod, targetDate);
-    onDateRangeChange(start, end, activePeriod);
+    const rangeKey = `${start}-${end}-${activePeriod}`;
+    
+    if (lastReportedRange.current !== rangeKey) {
+      lastReportedRange.current = rangeKey;
+      onDateRangeChange(start, end, activePeriod);
+    }
   }, [activePeriod, targetDate, customStartDate, customEndDate, onDateRangeChange, calculateDateRange]);
   
   const handleDateNavigate = (amount: number) => {

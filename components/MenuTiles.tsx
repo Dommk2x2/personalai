@@ -55,6 +55,7 @@ export const MENU_GROUPS: MenuGroup[] = [
       { key: 'passbook', label: 'Passbook', icon: PassbookIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
       { key: 'financialCalendar', label: 'Calendar', icon: CalendarIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
       { key: 'charts', label: 'Analytics', icon: ChartIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
+      { key: 'dailySummary', label: 'Daily Summary', icon: CalendarIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
       { key: 'monthlySummary', label: 'Monthly Summary', icon: DocumentChartBarIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
       { key: 'miniStatement', label: 'Statement', icon: ListBulletIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
       { key: 'notificationHistory', label: 'Alerts', icon: ShieldCheckIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
@@ -122,6 +123,7 @@ export const MENU_GROUPS: MenuGroup[] = [
       modes: [AppMode.REPORTS],
       tiles: [
           { key: 'reportsDashboard', label: 'Analytics', icon: ChartIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.REPORTS] },
+          { key: 'dailySummary', label: 'Daily Summary', icon: CalendarIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.REPORTS] },
           { key: 'attendanceReports', label: 'Attendance', icon: DocumentChartBarIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.REPORTS] },
           { key: 'salaryReport', label: 'Payslips', icon: BanknotesIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.REPORTS] },
       ]

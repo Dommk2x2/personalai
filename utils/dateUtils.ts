@@ -219,9 +219,16 @@ export function getCurrentPeriodIdentifier(period: BudgetPeriod, date: Date = ne
 }
 
 // Formats YYYY-MM-DD to "Mon DD, YYYY" or similar
-export const formatDateDisplay = (dateString?: string): string => {
-    if (!dateString) return 'N/A'; 
+export const formatDateDisplay = (dateInput?: string | Date): string => {
+    if (!dateInput) return 'N/A'; 
+    let dateString = '';
     try {
+        if (dateInput instanceof Date) {
+            dateString = formatDateToYYYYMMDD(dateInput);
+        } else {
+            dateString = dateInput;
+        }
+
         // Assuming dateString is YYYY-MM-DD or includes time.
         // Take only the date part and append T00:00:00 to parse as local midnight.
         const localDate = new Date(dateString.split('T')[0] + 'T00:00:00');

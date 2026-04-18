@@ -16,9 +16,7 @@ root.render(
   <React.StrictMode>
     <ThemeProvider>
       <LanguageProvider>
-        <TimerProvider>
-          <App />
-        </TimerProvider>
+        <App />
       </LanguageProvider>
     </ThemeProvider>
   </React.StrictMode>

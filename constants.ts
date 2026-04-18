@@ -187,6 +187,13 @@ export const CONFIGURABLE_USER_FEATURES: ConfigurableUserFeature[] = [
     defaultEnabled: true 
   },
   { 
+    key: 'dailySummary', 
+    label: 'Daily Summary', 
+    description: 'Detailed summary of all entries for a specific day.',
+    icon: CalendarIcon, 
+    defaultEnabled: true 
+  },
+  { 
     key: 'history', 
     label: 'Transaction History', 
     description: 'Paginated list of all your transactions.',
@@ -526,7 +533,7 @@ const allToggleableSectionKeys: UserFeatureKey[] = [
   'attendanceReports', 'attendanceCalendar', 'financialCalendar', 'salaryReport', 
   'attendanceConfigReport', 'reportsDashboard', 'snapshot', 'appLockSettings', 'todoList', 'dayPlanner', 'horoscope',
   'subscriptionTracker', 'rechargeTracker', 'accountSpecificSettings', 'menuItemManagement',
-  'upiPayment', 'pdfImporter', 'newYearCountdown', 'documentVault', 'digitalIdVault', 'userManual',
+  'upiPayment', 'pdfImporter', 'newYearCountdown', 'documentVault', 'digitalIdVault', 'userManual', 'dailySummary',
 ];
 
 allToggleableSectionKeys.forEach(key => {

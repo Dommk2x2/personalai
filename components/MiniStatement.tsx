@@ -46,7 +46,16 @@ export const MiniStatement: React.FC<MiniStatementProps> = ({ transactions, acco
   };
 
   const recentTransactions = [...transactions] 
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .sort((a, b) => {
+      const dateA = new Date(a.date + 'T00:00:00').getTime();
+      const dateB = new Date(b.date + 'T00:00:00').getTime();
+      if (dateB !== dateA) return dateB - dateA;
+
+      if (a.createdAt && b.createdAt) {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      return (b.id || '').localeCompare(a.id || '');
+    })
     .slice(0, 7);
 
   const handleDownloadPdf = () => {

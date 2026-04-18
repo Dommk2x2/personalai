@@ -337,7 +337,7 @@ export type UserFeatureKey =
   | 'attendanceReports' | 'attendanceCalendar' | 'financialCalendar' | 'salaryReport'
   | 'attendanceConfigReport' | 'appLockSettings' | 'todoList' | 'dayPlanner' | 'horoscope'
   | 'subscriptionTracker' | 'rechargeTracker' | 'accountSpecificSettings' | 'menuItemManagement'
-  | 'upiPayment' | 'pdfImporter' | 'newYearCountdown' | 'documentVault' | 'digitalIdVault' | 'userManual' | 'monthlySummary' | 'benefitPassbook';
+  | 'upiPayment' | 'pdfImporter' | 'newYearCountdown' | 'documentVault' | 'digitalIdVault' | 'userManual' | 'monthlySummary' | 'benefitPassbook' | 'dailySummary';
 
 export type SectionKey = UserFeatureKey | 'userFeatureControl' | 'userManagement' | 'dataManagement' | 'appSettings' | 'viewAccountsTable' | 'viewSchedulesTable' | 'viewAllTransactionsTable' | 'recycleBin' | 'snapshot' | 'viewRawLocalStorageTable';
 
@@ -464,4 +464,13 @@ export interface OverlayContent {
 
 export interface OverlaySettings {
   enabledFeatures: UserFeatureKey[];
+}
+
+export interface ActivityLogEntry {
+  id: string;
+  timestamp: string; // ISO string
+  type: 'settings' | 'recharge' | 'subscription' | 'timer' | 'other';
+  message: string;
+  details?: string;
+  accountId?: string;
 }
