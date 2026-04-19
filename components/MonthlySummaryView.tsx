@@ -3,7 +3,8 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { 
   Transaction, Account, AttendanceEntry, DayPlannerEntry, SavedAmortizationSchedule,
-  AttendanceStatus, ExpenseCategory, TransactionType
+  AttendanceStatus, ExpenseCategory, TransactionType, BudgetSetting, TodoItem,
+  SubscriptionPlan, RechargePlan
 } from '../types';
 import YearlyFinancialGrid from './YearlyFinancialGrid';
 import { useTheme } from '../contexts/ThemeContext';
@@ -14,7 +15,12 @@ import {
   ChevronLeftIcon, 
   ChevronRightIcon,
   ChartIcon,
-  DocumentChartBarIcon
+  DocumentChartBarIcon,
+  BanknotesIcon,
+  CalendarIcon,
+  HandThumbUpIcon,
+  TrophyIcon,
+  ShoppingBagIcon
 } from './Icons';
 
 interface MonthlySummaryViewProps {
@@ -30,6 +36,10 @@ interface MonthlySummaryViewProps {
   attendanceEntries?: AttendanceEntry[];
   dayPlannerEntries?: DayPlannerEntry[];
   savedAmortizationSchedules?: SavedAmortizationSchedule[];
+  budgets?: BudgetSetting[];
+  todos?: TodoItem[];
+  subscriptionPlans?: SubscriptionPlan[];
+  rechargePlans?: RechargePlan[];
 }
 
 const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
@@ -44,7 +54,11 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
   onUpdateTransaction,
   attendanceEntries = [],
   dayPlannerEntries = [],
-  savedAmortizationSchedules = []
+  savedAmortizationSchedules = [],
+  budgets = [],
+  todos = [],
+  subscriptionPlans = [],
+  rechargePlans = []
 }) => {
   const { currentThemeColors } = useTheme();
   const [showCategories, setShowCategories] = useState(false);
@@ -77,7 +91,10 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
       emiTotal: number, 
       attendance: Record<string, number>,
       planner: { completed: number, total: number },
-      financial: { income: number, expense: number, initialBalance: number }
+      financial: { income: number, expense: number, initialBalance: number },
+      rechargeCount: number,
+      subscriptionCount: number,
+      todoCount: { completed: number, total: number }
     }> = {};
 
     for (let i = 0; i < 12; i++) {
@@ -86,7 +103,10 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
         emiTotal: 0,
         attendance: {},
         planner: { completed: 0, total: 0 },
-        financial: { income: 0, expense: 0, initialBalance: 0 }
+        financial: { income: 0, expense: 0, initialBalance: 0 },
+        rechargeCount: 0,
+        subscriptionCount: 0,
+        todoCount: { completed: 0, total: 0 }
       };
     }
 
@@ -118,9 +138,16 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
           stats[m].financial.expense += tx.amount;
           runningBalance -= tx.amount;
           
+          const desc = tx.description.toLowerCase();
           if (tx.category === ExpenseCategory.EMI || tx.category === 'EMI') {
             stats[m].emiCount++;
             stats[m].emiTotal += tx.amount;
+          }
+          if (tx.category === 'Recharge' || desc.includes('recharge')) {
+            stats[m].rechargeCount++;
+          }
+          if (tx.category === 'Subscription' || desc.includes('subscription') || desc.includes('netflix') || desc.includes('spotify') || desc.includes('prime')) {
+            stats[m].subscriptionCount++;
           }
         }
       });
@@ -148,8 +175,56 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
       }
     });
 
+    // Process Todos
+    todos.forEach(todo => {
+        if (!todo.createdAt) return;
+        const date = new Date(todo.createdAt);
+        if (date.getFullYear() === currentYear) {
+            const month = date.getMonth();
+            stats[month].todoCount.total++;
+            if (todo.completed) stats[month].todoCount.completed++;
+        }
+    });
+
     return stats;
-  }, [filteredTransactions, currentYear, attendanceEntries, dayPlannerEntries, accounts, activeAccountId]);
+  }, [filteredTransactions, currentYear, attendanceEntries, dayPlannerEntries, accounts, activeAccountId, todos]);
+
+  // Yearly Highlights Calcs
+  const highlights = useMemo(() => {
+    let totalIncome = 0;
+    let totalExpense = 0;
+    let totalEmi = 0;
+    let totalTasksTotal = 0;
+    let totalTasksComp = 0;
+    let totalPresent = 0;
+    let totalRecharges = 0;
+    let totalSubs = 0;
+    let totalTodoTotal = 0;
+    let totalTodoComp = 0;
+
+    (Object.values(monthlyStats) as any[]).forEach(s => {
+      totalIncome += s.financial.income;
+      totalExpense += s.financial.expense;
+      totalEmi += s.emiTotal;
+      totalTasksTotal += s.planner.total;
+      totalTasksComp += s.planner.completed;
+      totalPresent += (s.attendance[AttendanceStatus.PRESENT] || 0) + (s.attendance[AttendanceStatus.WORK_FROM_HOME] || 0);
+      totalRecharges += s.rechargeCount;
+      totalSubs += s.subscriptionCount;
+      totalTodoTotal += s.todoCount.total;
+      totalTodoComp += s.todoCount.completed;
+    });
+
+    return {
+      netSavings: totalIncome - totalExpense,
+      emiTotal: totalEmi,
+      taskRate: totalTasksTotal > 0 ? (totalTasksComp / totalTasksTotal * 100).toFixed(0) : '0',
+      totalPresent,
+      totalRecharges,
+      totalSubs,
+      todoRate: totalTodoTotal > 0 ? (totalTodoComp / totalTodoTotal * 100).toFixed(0) : '0'
+    };
+  }, [monthlyStats]);
 
   const handleDownloadPdf = () => {
     setIsExporting(true);
@@ -246,13 +321,13 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
 
     const emiTaskData = monthNames.map((month, idx) => {
       const s = monthlyStats[idx];
-      const rate = s.planner.total > 0 ? ((s.planner.completed / s.planner.total) * 100).toFixed(0) + '%' : '0%';
+      const rateMonth = s.planner.total > 0 ? ((s.planner.completed / s.planner.total) * 100).toFixed(0) + '%' : '0%';
       return [
         month,
         s.emiCount,
         formatPdfCurrency(s.emiTotal),
         `${s.planner.completed} / ${s.planner.total}`,
-        rate
+        rateMonth
       ];
     });
 
@@ -294,6 +369,21 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
     </div>
   );
 
+  const SummaryCard = ({ title, value, subtext, icon: Icon, color }: { title: string, value: string, subtext: string, icon: any, color: string }) => (
+    <div className="bg-bg-primary-themed p-4 rounded-xl shadow border transition-all hover:shadow-md hover:-translate-y-1" style={{ borderColor: `${color}30` }}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] font-black uppercase tracking-widest opacity-50">{title}</span>
+        <div className="p-2 rounded-lg" style={{ backgroundColor: `${color}15` }}>
+          <Icon className="w-4 h-4" style={{ color }} />
+        </div>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-xl font-black truncate" style={{ color: currentThemeColors.textBase }}>{value}</span>
+        <span className="text-[10px] font-medium opacity-60 tracking-tight h-4 overflow-hidden">{subtext}</span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header & Year Selector */}
@@ -303,14 +393,14 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
           <div>
             <h2 className="text-3xl font-black tracking-tight mb-2" style={{ color: currentThemeColors.textBase }}>
-              Monthly Summary
+              Monthly Summary Snapshot
             </h2>
             <div className="flex items-center gap-3">
               <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
                 {activeAccountName}
               </span>
               <p className="text-sm font-medium" style={{ color: currentThemeColors.textMuted }}>
-                Yearly audit of Finance, EMI, Attendance & Tasks
+                Yearly audit of Finance, Attendance & Productivity
               </p>
             </div>
           </div>
@@ -322,13 +412,14 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
               className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-text-inverted rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg font-bold text-xs uppercase tracking-widest disabled:opacity-50"
             >
               <DocumentChartBarIcon className="w-4 h-4" />
-              {isExporting ? 'Exporting...' : 'Download Full PDF'}
+              {isExporting ? 'Exporting...' : 'Full Report PDF'}
             </button>
 
             <div className="flex items-center gap-4 bg-bg-accent-themed p-2 rounded-xl border border-dashed" style={{ borderColor: currentThemeColors.borderSecondary }}>
               <button 
                 onClick={handlePrevYear}
                 className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                style={{ color: currentThemeColors.textBase }}
               >
                 <ChevronLeftIcon className="w-5 h-5" />
               </button>
@@ -336,12 +427,73 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
               <button 
                 onClick={handleNextYear}
                 className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                style={{ color: currentThemeColors.textBase }}
               >
                 <ChevronRightIcon className="w-5 h-5" />
               </button>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Yearly Summary Cards - The "Snapshot" Option */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+        <SummaryCard 
+          title="Transactions" 
+          value={formatCurrency(highlights.netSavings)} 
+          subtext="Total Net Savings" 
+          icon={BanknotesIcon} 
+          color={highlights.netSavings >= 0 ? currentThemeColors.income : currentThemeColors.expense} 
+        />
+        <SummaryCard 
+          title="EMI Tracker" 
+          value={formatCurrency(highlights.emiTotal)} 
+          subtext="Total Amount Paid" 
+          icon={CalculatorIcon} 
+          color={currentThemeColors.expense} 
+        />
+        <SummaryCard 
+          title="Attendance" 
+          value={`${highlights.totalPresent}D`} 
+          subtext="Present / WFH total" 
+          icon={UsersIcon} 
+          color={currentThemeColors.brandSecondary} 
+        />
+        <SummaryCard 
+          title="Budget Plan" 
+          value={formatCurrency(budgets.reduce((sum, b) => sum + b.allocated, 0))} 
+          subtext="Monthly allocation total" 
+          icon={ChartIcon} 
+          color={currentThemeColors.brandPrimary} 
+        />
+        <SummaryCard 
+          title="To-do Task" 
+          value={`${highlights.todoRate}%`} 
+          subtext="General Todo List" 
+          icon={HandThumbUpIcon} 
+          color={currentThemeColors.brandPrimary} 
+        />
+        <SummaryCard 
+          title="Planner" 
+          value={`${highlights.taskRate}%`} 
+          subtext="Day Planner rate" 
+          icon={ListChecksIcon} 
+          color={currentThemeColors.brandPrimary} 
+        />
+        <SummaryCard 
+          title="Recharge" 
+          value={`${highlights.totalRecharges}`} 
+          subtext="Mobile / DTH bills" 
+          icon={ShoppingBagIcon} 
+          color={currentThemeColors.brandPrimary} 
+        />
+        <SummaryCard 
+          title="Subscription" 
+          value={`${highlights.totalSubs}`} 
+          subtext="Active streaming etc." 
+          icon={TrophyIcon} 
+          color={currentThemeColors.brandSecondary} 
+        />
       </div>
 
       {/* Financial Summary Grid */}
@@ -400,11 +552,11 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
 
                   return (
                     <tr key={month} className={`border-b border-dashed last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${!hasData ? 'opacity-30' : ''}`} style={{ borderColor: currentThemeColors.borderSecondary }}>
-                      <td className="py-3 px-2 font-bold">{month}</td>
+                      <td className="py-3 px-2 font-bold" style={{ color: currentThemeColors.textBase }}>{month}</td>
                       <td className="py-3 px-2 text-center font-mono font-black" style={{ color: currentThemeColors.income }}>{stats[AttendanceStatus.PRESENT] || '-'}</td>
                       <td className="py-3 px-2 text-center font-mono font-black" style={{ color: currentThemeColors.expense }}>{stats[AttendanceStatus.ABSENT] || '-'}</td>
                       <td className="py-3 px-2 text-center font-mono font-black" style={{ color: currentThemeColors.brandSecondary }}>{stats[AttendanceStatus.WORK_FROM_HOME] || '-'}</td>
-                      <td className="py-3 px-2 text-center font-mono font-black">{leaves || '-'}</td>
+                      <td className="py-3 px-2 text-center font-mono font-black" style={{ color: currentThemeColors.textBase }}>{leaves || '-'}</td>
                     </tr>
                   );
                 })}
@@ -413,7 +565,7 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
           </div>
         </div>
 
-        {/* EMI & Tasks Summary */}
+        {/* EMI & Productivity Recap */}
         <div className="space-y-8">
           {/* EMI Summary */}
           <div className="bg-bg-primary-themed p-6 rounded-2xl shadow-lg border" style={{ borderColor: currentThemeColors.borderSecondary }}>
@@ -423,8 +575,8 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
                 <thead>
                   <tr className="border-b" style={{ borderColor: currentThemeColors.borderSecondary }}>
                     <th className="py-3 px-2 font-black uppercase tracking-widest opacity-50">Month</th>
-                    <th className="py-3 px-2 font-black uppercase tracking-widest text-center">Payments</th>
-                    <th className="py-3 px-2 font-black uppercase tracking-widest text-right">Total Amount</th>
+                    <th className="py-3 px-2 font-black uppercase tracking-widest text-center">Count</th>
+                    <th className="py-3 px-2 font-black uppercase tracking-widest text-right">Paid</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -434,8 +586,8 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
 
                     return (
                       <tr key={month} className={`border-b border-dashed last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${!hasData ? 'opacity-30' : ''}`} style={{ borderColor: currentThemeColors.borderSecondary }}>
-                        <td className="py-3 px-2 font-bold">{month}</td>
-                        <td className="py-3 px-2 text-center font-mono">{stats.emiCount || '-'}</td>
+                        <td className="py-3 px-2 font-bold" style={{ color: currentThemeColors.textBase }}>{month}</td>
+                        <td className="py-3 px-2 text-center font-mono" style={{ color: currentThemeColors.textBase }}>{stats.emiCount || '-'}</td>
                         <td className="py-3 px-2 text-right font-mono font-black" style={{ color: stats.emiTotal > 0 ? currentThemeColors.expense : undefined }}>
                           {stats.emiTotal > 0 ? formatCurrency(stats.emiTotal) : '-'}
                         </td>
@@ -447,49 +599,43 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({
             </div>
           </div>
 
-          {/* Day Planner Summary */}
+          {/* Productivity Stats (Recharge, Subscription, Tasks) */}
           <div className="bg-bg-primary-themed p-6 rounded-2xl shadow-lg border" style={{ borderColor: currentThemeColors.borderSecondary }}>
-            <SectionHeader title="Task Productivity" icon={ListChecksIcon} color={currentThemeColors.brandPrimary} />
+            <SectionHeader title="Productivity & Recurring" icon={ListChecksIcon} color={currentThemeColors.brandPrimary} />
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left border-collapse">
                 <thead>
                   <tr className="border-b" style={{ borderColor: currentThemeColors.borderSecondary }}>
                     <th className="py-3 px-2 font-black uppercase tracking-widest opacity-50">Month</th>
-                    <th className="py-3 px-2 font-black uppercase tracking-widest text-center">Progress</th>
-                    <th className="py-3 px-2 font-black uppercase tracking-widest text-right">Success Rate</th>
+                    <th className="py-3 px-2 font-black uppercase tracking-widest text-center">Tasks</th>
+                    <th className="py-3 px-2 font-black uppercase tracking-widest text-center">Rec/Sub</th>
+                    <th className="py-3 px-2 font-black uppercase tracking-widest text-right">Todo%</th>
                   </tr>
                 </thead>
                 <tbody>
                   {monthNames.map((month, idx) => {
-                    const stats = monthlyStats[idx].planner;
-                    const hasData = stats.total > 0;
-                    const rate = hasData ? (stats.completed / stats.total) * 100 : 0;
+                    const stats = monthlyStats[idx];
+                    const hasData = stats.planner.total > 0 || stats.rechargeCount > 0 || stats.subscriptionCount > 0 || stats.todoCount.total > 0;
+                    const plannerRate = stats.planner.total > 0 ? (stats.planner.completed / stats.planner.total) * 100 : 0;
+                    const todoRate = stats.todoCount.total > 0 ? (stats.todoCount.completed / stats.todoCount.total) * 100 : 0;
 
                     return (
                       <tr key={month} className={`border-b border-dashed last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${!hasData ? 'opacity-30' : ''}`} style={{ borderColor: currentThemeColors.borderSecondary }}>
-                        <td className="py-3 px-2 font-bold">{month}</td>
+                        <td className="py-3 px-2 font-bold" style={{ color: currentThemeColors.textBase }}>{month}</td>
                         <td className="py-3 px-2 text-center font-mono">
-                          <span className="text-brand-primary font-black">{stats.completed}</span>
+                          <span className="text-brand-primary font-black">{stats.planner.completed}</span>
                           <span className="opacity-30 mx-1">/</span>
-                          <span className="opacity-50 font-bold">{stats.total}</span>
+                          <span className="opacity-50 font-bold">{stats.planner.total}</span>
+                        </td>
+                        <td className="py-3 px-2 text-center font-mono">
+                          <span className="text-brand-primary">{stats.rechargeCount}</span>
+                          <span className="mx-1 opacity-20">|</span>
+                          <span className="text-brand-secondary">{stats.subscriptionCount}</span>
                         </td>
                         <td className="py-3 px-2 text-right">
-                          <div className="flex flex-col items-end">
-                            <span className="font-mono font-black" style={{ color: rate >= 70 ? currentThemeColors.income : rate >= 40 ? currentThemeColors.brandSecondary : currentThemeColors.expense }}>
-                              {hasData ? `${rate.toFixed(0)}%` : '-'}
-                            </span>
-                            {hasData && (
-                              <div className="w-16 h-1 mt-1 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-                                <div 
-                                  className="h-full rounded-full transition-all duration-500" 
-                                  style={{ 
-                                    width: `${rate}%`,
-                                    backgroundColor: rate >= 70 ? currentThemeColors.income : rate >= 40 ? currentThemeColors.brandSecondary : currentThemeColors.expense 
-                                  }} 
-                                />
-                              </div>
-                            )}
-                          </div>
+                          <span className="font-mono font-black" style={{ color: todoRate >= 70 ? currentThemeColors.income : todoRate >= 40 ? currentThemeColors.brandSecondary : currentThemeColors.expense }}>
+                            {stats.todoCount.total > 0 ? `${todoRate.toFixed(0)}%` : '-'}
+                          </span>
                         </td>
                       </tr>
                     );

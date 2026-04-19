@@ -137,6 +137,7 @@ import { SnapshotsStack } from './components/Snapshots';
 import { UserManual } from './components/UserManual';
 import Dashboard from './components/Dashboard';
 import MonthlySummaryView from './components/MonthlySummaryView';
+import SnapshotReport from './components/SnapshotReport';
 import DailySummaryView from './components/DailySummaryView';
 import FloatingOverlay from './components/FloatingOverlay';
 import { ArrowsPointingOutIcon } from './components/Icons';
@@ -203,6 +204,15 @@ const App: React.FC = () => {
     [AppMode.TODO]: [
       { id: 't1', title: 'To-do List', sectionKey: 'todoList', isDefault: true },
       { id: 't2', title: 'Day Planner', sectionKey: 'dayPlanner' }
+    ],
+    [AppMode.REPORTS]: [
+      { id: 'r1', title: 'Snapshot Report', sectionKey: 'yearlySnapshot', isDefault: true },
+      { id: 'r2', title: 'Financial Charts', sectionKey: 'charts' },
+      { id: 'r3', title: 'Monthly Summary', sectionKey: 'monthlySummary' },
+      { id: 'r4', title: 'Daily Report', sectionKey: 'dailySummary' }
+    ],
+    [AppMode.GALLERY]: [
+      { id: 'g1', title: 'Vault', sectionKey: 'documentVault', isDefault: true }
     ]
   });
   const { data: isLeftSidebarVisible, setData: setIsLeftSidebarVisible } = useFirestoreDocumentSync<boolean>('settings/isLeftSidebarVisible', 'isLeftSidebarVisible', true);
@@ -860,8 +870,11 @@ const App: React.FC = () => {
     setActiveMode(newMode);
     let sections: SectionKey[] = [];
     if (newMode === AppMode.REPORTS) {
-      sections = ['reportsDashboard', 'charts'];
-      setPagerIndex(0);
+      const layout = modeLayouts[newMode] || [];
+      const defaultPage = layout.find(p => p.isDefault) || layout[0];
+      sections = [defaultPage?.sectionKey || 'yearlySnapshot'];
+      const defaultPageIndex = layout.findIndex(p => p.isDefault);
+      setPagerIndex(defaultPageIndex !== -1 ? defaultPageIndex : 0);
     } else {
       const layout = modeLayouts[newMode] || [];
       const defaultPage = layout.find(p => p.isDefault) || layout[0];
@@ -1796,8 +1809,8 @@ const App: React.FC = () => {
     { key: 'pdfImporter', modes: [AppMode.FINANCE], component: <TransactionImporter onImportTransactions={handleImportTransactions} incomeCategories={incomeCategoriesList} expenseCategories={expenseCategories} /> },
     { key: 'accountManagement', modes: [AppMode.FINANCE], component: <AccountManager transactions={safeTransactions} /> },
     { key: 'categoryManagement', modes: [AppMode.FINANCE], component: <CategoryManager incomeCategories={incomeCategoriesList} expenseCategories={expenseCategories} onAddIncomeCategory={handleAddIncomeCategory} onEditIncomeCategory={handleEditIncomeCategory} onDeleteIncomeCategory={handleDeleteIncomeCategory} onAddExpenseCategory={handleAddExpenseCategory} onEditExpenseCategory={handleEditExpenseCategory} onDeleteExpenseCategory={handleDeleteExpenseCategory} /> },
-    { key: 'documentVault', modes: [AppMode.FINANCE], component: <DocumentVault vaultItems={safeVaultItems.filter(v => !v.isDeleted)} onAddItem={handleAddVaultItem} onDeleteItem={handleDeleteVaultItem} addToast={addToast} onUnlockRequest={(onSuccess) => onSuccess()} isVaultUnlocked={true} appPin={appPin} onPopOut={overlaySettings.enabledFeatures.includes('documentVault') ? (title, item) => { setFloatingOverlayContent({ type: 'vault_item', title, data: item }); setIsFloatingOverlayOpen(true); } : undefined} /> },
-    { key: 'digitalIdVault', modes: [AppMode.FINANCE], component: <DigitalIDVault /> },
+    { key: 'documentVault', modes: [AppMode.FINANCE, AppMode.GALLERY], component: <DocumentVault vaultItems={safeVaultItems.filter(v => !v.isDeleted)} onAddItem={handleAddVaultItem} onDeleteItem={handleDeleteVaultItem} addToast={addToast} onUnlockRequest={(onSuccess) => onSuccess()} isVaultUnlocked={true} appPin={appPin} onPopOut={overlaySettings.enabledFeatures.includes('documentVault') ? (title, item) => { setFloatingOverlayContent({ type: 'vault_item', title, data: item }); setIsFloatingOverlayOpen(true); } : undefined} /> },
+    { key: 'digitalIdVault', modes: [AppMode.FINANCE, AppMode.GALLERY], component: <DigitalIDVault /> },
     { key: 'notificationHistory', modes: [AppMode.FINANCE], component: <NotificationHistory notifications={safeNotificationHistory} onClearHistory={() => setNotificationHistory([])} accounts={safeAccounts} upcomingPayments={[]} onViewSchedule={() => {}} appTitle={appTitle} />},
     { key: 'appLockSettings', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO], component: <AppLockSettings currentPin={appPin} onPinSet={setAppPin} onPinRemoved={() => setAppPin(null)} onPinChanged={(old, next) => { if(old === String(appPin)) { setAppPin(next); return true; } return false; }} addToast={addToast} username={loggedInUser?.username || 'Guest'} /> },
     { key: 'miniStatement', modes: [AppMode.FINANCE], component: (
@@ -1854,7 +1867,8 @@ const App: React.FC = () => {
             <RepeatedTransactionsReport transactions={currentPeriodTransactions} />
         </div>
     ) },
-    { key: 'monthlySummary', modes: [AppMode.FINANCE], component: <MonthlySummaryView transactions={safeTransactions.filter(t => !t.isDeleted)} accounts={safeAccounts.filter(a => !a.isDeleted)} activeAccountId={activeAccountId} incomeCategories={incomeCategoriesList} expenseCategories={expenseCategories} appTitle={appTitle} onEditTransaction={(tx) => { setTransactionToEdit(tx); handleShowSection('form'); }} onDeleteTransaction={handleDeleteTransaction} onUpdateTransaction={handleUpdateTransaction} attendanceEntries={safeAttendanceEntries} dayPlannerEntries={safeDayPlannerEntries.filter(e => !e.isDeleted)} savedAmortizationSchedules={safeSavedAmortizationSchedules.filter(s => !s.isDeleted)} /> },
+    { key: 'monthlySummary', modes: [AppMode.FINANCE, AppMode.REPORTS], component: <MonthlySummaryView transactions={safeTransactions.filter(t => !t.isDeleted)} accounts={safeAccounts.filter(a => !a.isDeleted)} activeAccountId={activeAccountId} incomeCategories={incomeCategoriesList} expenseCategories={expenseCategories} appTitle={appTitle} onEditTransaction={(tx) => { setTransactionToEdit(tx); handleShowSection('form'); }} onDeleteTransaction={handleDeleteTransaction} onUpdateTransaction={handleUpdateTransaction} attendanceEntries={safeAttendanceEntries} dayPlannerEntries={safeDayPlannerEntries.filter(e => !e.isDeleted)} savedAmortizationSchedules={safeSavedAmortizationSchedules.filter(s => !s.isDeleted)} budgets={budgetSettings} todos={todos.filter(t => !t.isDeleted)} subscriptionPlans={subscriptionPlans.filter(s => !s.isDeleted)} rechargePlans={rechargePlans.filter(r => !r.isDeleted)} /> },
+    {key: 'yearlySnapshot', modes: [AppMode.FINANCE, AppMode.REPORTS], component: <SnapshotReport transactions={safeTransactions.filter(t => !t.isDeleted)} attendanceEntries={safeAttendanceEntries} dayPlannerEntries={safeDayPlannerEntries.filter(e => !e.isDeleted)} budgets={budgetSettings} todos={todos.filter(t => !t.isDeleted)} subscriptionPlans={subscriptionPlans.filter(s => !s.isDeleted)} rechargePlans={rechargePlans.filter(r => !r.isDeleted)} activeAccountId={activeAccountId} appTitle={appTitle} username={loggedInUser?.username} /> },
     { key: 'dailySummary', modes: [AppMode.FINANCE, AppMode.REPORTS], component: (
       <div className="space-y-4">
         <div className="flex justify-between items-center bg-bg-secondary-themed p-4 rounded-xl shadow-sm border border-transparent">
