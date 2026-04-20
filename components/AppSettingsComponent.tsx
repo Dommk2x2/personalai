@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BanknotesIcon, CalendarDaysIcon, UserGroupIcon, LockClosedIcon as SessionLockIcon, TypeIcon, SaveIcon, DatabaseIcon as AutoBackupIcon, SparklesIcon, TypeIcon as IdentityIcon, LayoutIcon, ArrowsPointingOutIcon } from './Icons';
 import { useTheme } from '../contexts/ThemeContext';
 // FIX: Rename imported type to avoid conflict with component name
-import { ToastType, AppSettingSectionKey, Role, AutoBackupSettings as AutoBackupSettingsType, SalaryDeduction, SectionKey, DefaultViewSettings, FestiveDate, OverlaySettings as OverlaySettingsType } from '../types'; // Added Role
+import { ToastType, AppSettingSectionKey, Role, AutoBackupSettings as AutoBackupSettingsType, SalaryDeduction, SectionKey, DefaultViewSettings, FestiveDate, OverlaySettings as OverlaySettingsType, Account } from '../types'; // Added Role and Account
 import { FilterPeriod } from './DateFilter';
 
 import SalarySettings from './settings/SalarySettings';
@@ -69,6 +69,9 @@ interface AppSettingsComponentProps {
   username: string;
   overlaySettings: OverlaySettingsType;
   onSetOverlaySettings: (settings: OverlaySettingsType) => void;
+  accounts: Account[];
+  primaryAccountId: string | null;
+  onSetPrimaryAccountId: (id: string | null) => void;
 }
 
 export const AppSettingsComponent: React.FC<AppSettingsComponentProps> = (props) => {
@@ -156,6 +159,9 @@ export const AppSettingsComponent: React.FC<AppSettingsComponentProps> = (props)
             onSetModeLayouts={props.onSetModeLayouts}
             addToast={props.addToast}
             username={props.username}
+            accounts={props.accounts}
+            primaryAccountId={props.primaryAccountId}
+            onSetPrimaryAccountId={props.onSetPrimaryAccountId}
           />
         );
       case 'backup':

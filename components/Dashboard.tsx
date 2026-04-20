@@ -1,8 +1,9 @@
 
 
 import React, { useMemo } from 'react';
-import { Account, Transaction, TransactionType, AttendanceEntry, AttendanceStatus, SectionKey, BudgetSetting, BudgetPeriod } from '../types';
+import { Account, Transaction, TransactionType, AttendanceEntry, AttendanceStatus, SectionKey, BudgetSetting, BudgetPeriod, TodoItem, RechargePlan, SubscriptionPlan, SavedAmortizationSchedule } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
+import UnifiedDashboardCalendar from './UnifiedDashboardCalendar';
 import { 
   BanknotesIcon, 
   CreditCardIcon, 
@@ -23,6 +24,17 @@ import { WEEKDAY_OPTIONS } from '../constants';
 interface DashboardProps {
   accounts: Account[];
   transactions: Transaction[];
+  attendanceEntries: AttendanceEntry[];
+  schedules: SavedAmortizationSchedule[];
+  todos: TodoItem[];
+  rechargePlans: RechargePlan[];
+  subscriptionPlans: SubscriptionPlan[];
+  allTransactions: Transaction[];
+  allAttendanceEntries: AttendanceEntry[];
+  allSchedules: SavedAmortizationSchedule[];
+  allTodos: TodoItem[];
+  allRechargePlans: RechargePlan[];
+  allSubscriptionPlans: SubscriptionPlan[];
   activeAccount: Account | undefined;
   onEditTransaction: (transaction: Transaction) => void;
   openingBalance: number;
@@ -34,15 +46,73 @@ interface DashboardProps {
   setIsBalanceVisible: (visible: boolean) => void;
   startDate: string | null;
   endDate: string | null;
+  formatCurrency: (amount: number) => string;
+  onDateSelect: (date: string) => void;
+  onOpenDateDetails: (date: string) => void;
+  calendarDate: Date;
+  onCalendarDateChange: (date: Date) => void;
+  calendarViewMode: 'monthly' | 'yearly';
+  onCalendarViewModeChange: (mode: 'monthly' | 'yearly') => void;
+  primaryAccountId: string | null;
 }
 
-const formatCurrency = (amount: number, minimumFractionDigits = 2) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits, maximumFractionDigits: 2 }).format(amount);
-};
+const SummaryCard: React.FC<{ title: string; value: string; icon: React.FC<any>; color: string; isBalanceVisible: boolean; onClick?: () => void; progress?: number; subtitle?: string }> = ({ title, value, icon: Icon, color, isBalanceVisible, onClick, progress, subtitle }) => (
+  <div className={`bg-bg-secondary-themed p-4 sm:p-5 rounded-xl shadow-lg flex flex-col h-full transition-transform duration-300 hover:scale-105 hover:shadow-xl ${onClick ? 'cursor-pointer' : ''}`} onClick={onClick}>
+    <div className="flex items-center mb-3">
+      <div className="p-2.5 rounded-full mr-4" style={{ backgroundColor: `${color}20`}}>
+        <Icon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color }} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted-themed truncate">{title}</p>
+        <p className="text-lg sm:text-xl font-black truncate" style={{ color }}>
+          {isBalanceVisible ? value : '••••'}
+        </p>
+        {subtitle && <p className="text-[9px] font-bold text-text-muted-themed truncate mt-0.5">{subtitle}</p>}
+      </div>
+    </div>
+    
+progress !== undefined && (
+      <div className="mt-auto pt-2">
+        <div className="w-full h-1 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+          <div 
+            className="h-full rounded-full transition-all duration-500" 
+            style={{ 
+              backgroundColor: color,
+              width: `${Math.min(Math.max(0, progress), 100)}%`
+            }} 
+          />
+        </div>
+      </div>
+    )
+  </div>
+);
+
+const DashboardPanel: React.FC<{ title: string; icon: React.FC<any>; children: React.ReactNode; }> = ({ title, icon: Icon, children }) => (
+  <div className="bg-bg-secondary-themed p-4 sm:p-5 rounded-xl shadow-lg h-full flex flex-col">
+    <h3 className="text-md sm:text-lg font-semibold text-text-base-themed mb-3 flex items-center">
+      <Icon className="w-5 h-5 mr-2 text-brand-primary" />
+      {title}
+    </h3>
+    <div className="flex-grow">
+      {children}
+    </div>
+  </div>
+);
 
 const Dashboard: React.FC<DashboardProps> = ({ 
     accounts, 
     transactions,
+    attendanceEntries,
+    schedules,
+    todos,
+    rechargePlans,
+    subscriptionPlans,
+    allTransactions,
+    allAttendanceEntries,
+    allSchedules,
+    allTodos,
+    allRechargePlans,
+    allSubscriptionPlans,
     activeAccount,
     onEditTransaction,
     openingBalance,
@@ -54,6 +124,14 @@ const Dashboard: React.FC<DashboardProps> = ({
     setIsBalanceVisible,
     startDate,
     endDate,
+    formatCurrency,
+    onDateSelect,
+    onOpenDateDetails,
+    calendarDate,
+    onCalendarDateChange,
+    calendarViewMode,
+    onCalendarViewModeChange,
+    primaryAccountId,
 }) => {
   const { currentThemeColors } = useTheme();
 
@@ -133,6 +211,26 @@ const Dashboard: React.FC<DashboardProps> = ({
       };
     }
   }, [accounts, transactions, activeAccount, openingBalance, budgetSettings, financialMonthStartDay, startDate, endDate]);
+  
+  const { filteredTransactions, filteredAttendance, filteredSchedules, filteredTodos, filteredRecharges, filteredSubscriptions } = useMemo(() => {
+    // Determine if we are in a "Main" context (All Accounts OR account matches primaryAccountId)
+    const isMainContext = !activeAccount || activeAccount.id === primaryAccountId;
+
+    // Filter transactions by account if activeAccount is set
+    const txs = activeAccount 
+      ? allTransactions.filter(tx => tx.accountId === activeAccount.id && !tx.isDeleted)
+      : allTransactions.filter(tx => !tx.isDeleted);
+
+    // If it's a side account, user requested "only transactions"
+    return {
+      filteredTransactions: txs,
+      filteredAttendance: isMainContext ? allAttendanceEntries : [],
+      filteredSchedules: isMainContext ? allSchedules : [], // EMI follow main account or side only tx? "side account will target on only transaction"
+      filteredTodos: isMainContext ? allTodos : [],
+      filteredRecharges: isMainContext ? allRechargePlans : [],
+      filteredSubscriptions: isMainContext ? allSubscriptionPlans : [],
+    };
+  }, [activeAccount, allTransactions, allAttendanceEntries, allSchedules, allTodos, allRechargePlans, allSubscriptionPlans]);
 
   const SummaryCard: React.FC<{ title: string; value: string; icon: React.FC<any>; color: string; onClick?: () => void; progress?: number; subtitle?: string }> = ({ title, value, icon: Icon, color, onClick, progress, subtitle }) => (
     <div className={`bg-bg-secondary-themed p-4 sm:p-5 rounded-xl shadow-lg flex flex-col h-full transition-transform duration-300 hover:scale-105 hover:shadow-xl ${onClick ? 'cursor-pointer' : ''}`} onClick={onClick}>
@@ -179,111 +277,128 @@ const Dashboard: React.FC<DashboardProps> = ({
   
   const gridColsClass = !activeAccount ? 'lg:grid-cols-2' : 'lg:grid-cols-1';
 
-  const FinancialSummaryCard = () => (
-    <div className="bg-bg-secondary-themed rounded-[2rem] shadow-xl border border-border-primary overflow-visible relative transition-all duration-300 hover:shadow-2xl mb-8">
-      {/* Action Icons - Forced to Top Left with absolute positioning and high z-index */}
-      <div className="absolute -top-3 -left-3 flex items-center gap-3 z-[100]">
-        <button 
-          onClick={() => setIsBalanceVisible(!isBalanceVisible)}
-          className="w-12 h-12 rounded-2xl bg-brand-primary text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-4 border-white dark:border-slate-800"
-          title={isBalanceVisible ? "Hide Balances" : "Show Balances"}
-        >
-          {isBalanceVisible ? <EyeSlashIcon className="w-6 h-6" /> : <EyeIcon className="w-6 h-6" />}
-        </button>
-        <button 
-          onClick={() => onShowSection('monthlySummary')}
-          className="w-12 h-12 rounded-2xl bg-brand-primary text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-4 border-white dark:border-slate-800"
-          title="Monthly Summary"
-        >
-          <CalendarIcon className="w-6 h-6" />
-        </button>
-      </div>
-
-      {/* Top Header Row */}
-      <div className="px-8 pt-10 pb-2 flex justify-center items-center relative min-h-[80px]">
-        {/* Center: Date Range */}
-        <div className="text-center">
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 whitespace-nowrap">
-            {dateRangeLabel}
-          </span>
-        </div>
-
-        {/* Right: Per Day */}
-        <div className="absolute top-8 right-8 text-right">
-          <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">
-            PER DAY: {formatCurrency(perDayExpense, 2)}
-          </span>
-        </div>
-      </div>
-
-      {/* Main Grid with Borders */}
-      <div className="px-4 pb-10">
-        <div className="grid grid-cols-4 relative">
-          {/* Horizontal Line */}
-          <div className="absolute top-1/2 left-0 right-0 h-[1.5px] bg-slate-800 dark:bg-slate-200 -translate-y-1/2" />
-          
-          {/* Vertical Dividers */}
-          <div className="absolute top-4 bottom-4 left-1/4 w-[1.5px] bg-slate-800 dark:bg-slate-200" />
-          <div className="absolute top-4 bottom-4 left-2/4 w-[1.5px] bg-slate-800 dark:bg-slate-200" />
-          <div className="absolute top-4 bottom-4 left-3/4 w-[1.5px] bg-slate-800 dark:bg-slate-200" />
-
-          {/* Column 1: Opening Balance */}
-          <div className="flex flex-col items-center justify-center py-6 gap-8">
-            <span className="text-[12px] sm:text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Opening Balance</span>
-            <span className="text-base sm:text-xl font-black text-slate-800 dark:text-slate-100">
-              {isBalanceVisible ? formatCurrency(openingBalance, 2) : '••••'}
-            </span>
-          </div>
-
-          {/* Column 2: Total Income */}
-          <div className="flex flex-col items-center justify-center py-6 gap-8">
-            <span className="text-[12px] sm:text-sm font-black uppercase tracking-tight text-income">Total Income</span>
-            <span className="text-base sm:text-xl font-black text-income">
-              {isBalanceVisible ? `+${formatCurrency(summary.allTimeIncome, 2)}` : '••••'}
-            </span>
-          </div>
-
-          {/* Column 3: Total Expense */}
-          <div className="flex flex-col items-center justify-center py-6 gap-8">
-            <span className="text-[12px] sm:text-sm font-black uppercase tracking-tight text-expense">Total Expense</span>
-            <span className="text-base sm:text-xl font-black text-expense">
-              {isBalanceVisible ? `-${formatCurrency(summary.allTimeExpenses, 2)}` : '••••'}
-            </span>
-          </div>
-
-          {/* Column 4: Net Balance */}
-          <div className="flex flex-col items-center justify-center py-6 gap-8">
-            <span className="text-[12px] sm:text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Net Balance</span>
-            <span className="text-base sm:text-xl font-black text-slate-800 dark:text-slate-100">
-              {isBalanceVisible ? formatCurrency(summary.netWorth, 2) : '••••'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Chevron Button */}
-      <div className="absolute -bottom-5 left-1/2 -translate-x-1/2">
-        <button 
-          onClick={() => onShowSection('monthlySummary')}
-          className="w-11 h-11 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-brand-primary transition-all shadow-xl flex items-center justify-center group"
-        >
-          <ChevronUpIcon className="w-6 h-6 transition-transform group-hover:-translate-y-0.5" />
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="space-y-6">
       {/* Combined Financial Summary Card */}
-      <FinancialSummaryCard />
+      <div className="bg-bg-secondary-themed rounded-[2rem] shadow-xl border border-border-primary overflow-visible relative transition-all duration-300 hover:shadow-2xl mb-8">
+        {/* Action Icons - Forced to Top Left with absolute positioning and high z-index */}
+        <div className="absolute -top-3 -left-3 flex items-center gap-3 z-[100]">
+          <button 
+            onClick={() => setIsBalanceVisible(!isBalanceVisible)}
+            className="w-12 h-12 rounded-2xl bg-brand-primary text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-4 border-white dark:border-slate-800"
+            title={isBalanceVisible ? "Hide Balances" : "Show Balances"}
+          >
+            {isBalanceVisible ? <EyeSlashIcon className="w-6 h-6" /> : <EyeIcon className="w-6 h-6" />}
+          </button>
+          <button 
+            onClick={() => onShowSection('monthlySummary')}
+            className="w-12 h-12 rounded-2xl bg-brand-primary text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-4 border-white dark:border-slate-800"
+            title="Monthly Summary"
+          >
+            <CalendarIcon className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Top Header Row */}
+        <div className="px-8 pt-10 pb-2 flex justify-center items-center relative min-h-[80px]">
+          {/* Center: Date Range */}
+          <div className="text-center">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 whitespace-nowrap">
+              {dateRangeLabel}
+            </span>
+          </div>
+
+          {/* Right: Per Day */}
+          <div className="absolute top-8 right-8 text-right">
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">
+              PER DAY: {formatCurrency(perDayExpense, 2)}
+            </span>
+          </div>
+        </div>
+
+        {/* Main Grid with Borders */}
+        <div className="px-4 pb-10">
+          <div className="grid grid-cols-4 relative">
+            {/* Horizontal Line */}
+            <div className="absolute top-1/2 left-0 right-0 h-[1.5px] bg-slate-800 dark:bg-slate-200 -translate-y-1/2" />
+            
+            {/* Vertical Dividers */}
+            <div className="absolute top-4 bottom-4 left-1/4 w-[1.5px] bg-slate-800 dark:bg-slate-200" />
+            <div className="absolute top-4 bottom-4 left-2/4 w-[1.5px] bg-slate-800 dark:bg-slate-200" />
+            <div className="absolute top-4 bottom-4 left-3/4 w-[1.5px] bg-slate-800 dark:bg-slate-200" />
+
+            {/* Column 1: Opening Balance */}
+            <div className="flex flex-col items-center justify-center py-6 gap-8">
+              <span className="text-[12px] sm:text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Opening Balance</span>
+              <span className="text-base sm:text-xl font-black text-slate-800 dark:text-slate-100">
+                {isBalanceVisible ? formatCurrency(openingBalance, 2) : '••••'}
+              </span>
+            </div>
+
+            {/* Column 2: Total Income */}
+            <div className="flex flex-col items-center justify-center py-6 gap-8">
+              <span className="text-[12px] sm:text-sm font-black uppercase tracking-tight text-income">Total Income</span>
+              <span className="text-base sm:text-xl font-black text-income">
+                {isBalanceVisible ? `+${formatCurrency(summary.allTimeIncome, 2)}` : '••••'}
+              </span>
+            </div>
+
+            {/* Column 3: Total Expense */}
+            <div className="flex flex-col items-center justify-center py-6 gap-8">
+              <span className="text-[12px] sm:text-sm font-black uppercase tracking-tight text-expense">Total Expense</span>
+              <span className="text-base sm:text-xl font-black text-expense">
+                {isBalanceVisible ? `-${formatCurrency(summary.allTimeExpenses, 2)}` : '••••'}
+              </span>
+            </div>
+
+            {/* Column 4: Net Balance */}
+            <div className="flex flex-col items-center justify-center py-6 gap-8">
+              <span className="text-[12px] sm:text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Net Balance</span>
+              <span className="text-base sm:text-xl font-black text-slate-800 dark:text-slate-100">
+                {isBalanceVisible ? formatCurrency(summary.netWorth, 2) : '••••'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Chevron Button */}
+        <div className="absolute -bottom-5 left-1/2 -translate-x-1/2">
+          <button 
+            onClick={() => onShowSection('monthlySummary')}
+            className="w-11 h-11 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-brand-primary transition-all shadow-xl flex items-center justify-center group"
+          >
+            <ChevronUpIcon className="w-6 h-6 transition-transform group-hover:-translate-y-0.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Unified Insights Calendar */}
+      <DashboardPanel title="Unified Insights Calendar" icon={CalendarIcon}>
+        <UnifiedDashboardCalendar 
+          currentDate={calendarDate}
+          onCurrentDateChange={onCalendarDateChange}
+          transactions={filteredTransactions}
+          attendanceEntries={filteredAttendance}
+          schedules={filteredSchedules}
+          todos={filteredTodos}
+          rechargePlans={filteredRecharges}
+          subscriptionPlans={filteredSubscriptions}
+          financialMonthStartDay={financialMonthStartDay}
+          financialMonthEndDay={financialMonthEndDay}
+          formatCurrency={formatCurrency}
+          onDateSelect={onDateSelect}
+          onOpenDateDetails={onOpenDateDetails}
+          viewMode={calendarViewMode}
+          onViewModeChange={onCalendarViewModeChange}
+        />
+      </DashboardPanel>
 
       {/* Detailed Summary Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <SummaryCard title="Opening Balance" value={formatCurrency(openingBalance, 0)} icon={BanknotesIcon} color={currentThemeColors.textBase} />
-        <SummaryCard title="Total Income" value={formatCurrency(summary.allTimeIncome, 0)} icon={BanknotesIcon} color={currentThemeColors.chartIncome} />
-        <SummaryCard title="Total Expense" value={formatCurrency(summary.allTimeExpenses, 0)} icon={BanknotesIcon} color={currentThemeColors.chartExpense} progress={summary.allTimeIncome > 0 ? (summary.allTimeExpenses / summary.allTimeIncome) * 100 : 0} />
-        <SummaryCard title="Net Balance" value={formatCurrency(summary.netWorth, 0)} icon={BanknotesIcon} color={currentThemeColors.brandPrimary} progress={summary.allTimeIncome > 0 ? (summary.netWorth / (summary.allTimeIncome + openingBalance)) * 100 : 0} />
+        <SummaryCard title="Opening Balance" value={formatCurrency(openingBalance, 0)} icon={BanknotesIcon} color={currentThemeColors.textBase} isBalanceVisible={isBalanceVisible} />
+        <SummaryCard title="Total Income" value={formatCurrency(summary.allTimeIncome, 0)} icon={BanknotesIcon} color={currentThemeColors.chartIncome} isBalanceVisible={isBalanceVisible} />
+        <SummaryCard title="Total Expense" value={formatCurrency(summary.allTimeExpenses, 0)} icon={BanknotesIcon} color={currentThemeColors.chartExpense} isBalanceVisible={isBalanceVisible} progress={summary.allTimeIncome > 0 ? (summary.allTimeExpenses / summary.allTimeIncome) * 100 : 0} />
+        <SummaryCard title="Net Balance" value={formatCurrency(summary.netWorth, 0)} icon={BanknotesIcon} color={currentThemeColors.brandPrimary} isBalanceVisible={isBalanceVisible} progress={summary.allTimeIncome > 0 ? (summary.netWorth / (summary.allTimeIncome + openingBalance)) * 100 : 0} />
         
         {/* Budget Summary Card */}
         <SummaryCard 
@@ -292,12 +407,13 @@ const Dashboard: React.FC<DashboardProps> = ({
           subtitle={`Unbudgeted: ${formatCurrency(budgetSummary.unbudgetedExpenses, 0)}`}
           icon={TargetIcon} 
           color={budgetSummary.budgetedExpenses > budgetSummary.totalBudgeted ? currentThemeColors.expense : currentThemeColors.brandSecondary} 
+          isBalanceVisible={isBalanceVisible}
           progress={budgetSummary.totalBudgeted > 0 ? (budgetSummary.budgetedExpenses / budgetSummary.totalBudgeted) * 100 : 0}
           onClick={() => onShowSection('budget_performance')}
         />
 
         <div className="hidden md:block">
-            <SummaryCard title="Analytics" value="View Charts" icon={ChartIcon} color={currentThemeColors.brandPrimary} onClick={() => onShowSection('charts')} />
+            <SummaryCard title="Analytics" value="View Charts" icon={ChartIcon} color={currentThemeColors.brandPrimary} isBalanceVisible={isBalanceVisible} onClick={() => onShowSection('charts')} />
         </div>
       </div>
 

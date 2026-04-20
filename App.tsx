@@ -52,7 +52,8 @@ import {
   LOCAL_STORAGE_DEFAULT_DASHBOARD_PERIOD_KEY, LOCAL_STORAGE_ACCOUNT_SPECIFIC_SETTINGS_KEY,
   LOCAL_STORAGE_FESTIVE_DATES_KEY, LOCAL_STORAGE_HOME_PAGE_LAYOUT_KEY, LOCAL_STORAGE_MODE_LAYOUTS_KEY,
   LOCAL_STORAGE_OVERLAY_SETTINGS_KEY, LOCAL_STORAGE_LOCK_SCREEN_PICTURE_KEY,
-  LOCAL_STORAGE_LOGIN_BACKGROUND_KEY, LOCAL_STORAGE_DATABASE_PASSWORD_KEY
+  LOCAL_STORAGE_LOGIN_BACKGROUND_KEY, LOCAL_STORAGE_DATABASE_PASSWORD_KEY, LOCAL_STORAGE_PRIMARY_ACCOUNT_ID_KEY,
+  LOCAL_STORAGE_CUSTOM_BG_COLOR_KEY
 } from './constants';
 
 // Component Imports
@@ -137,7 +138,6 @@ import { SnapshotsStack } from './components/Snapshots';
 import { UserManual } from './components/UserManual';
 import Dashboard from './components/Dashboard';
 import MonthlySummaryView from './components/MonthlySummaryView';
-import SnapshotReport from './components/SnapshotReport';
 import DailySummaryView from './components/DailySummaryView';
 import FloatingOverlay from './components/FloatingOverlay';
 import { ArrowsPointingOutIcon } from './components/Icons';
@@ -146,6 +146,7 @@ const App: React.FC = () => {
   // --- Persistent Storage State ---
   const { data: appTitle, setData: setAppTitle } = useFirestoreDocumentSync<string>('settings/appTitle', LOCAL_STORAGE_APP_TITLE_KEY, 'Personal AI');
   const { data: customBrandColor, setData: setCustomBrandColor } = useFirestoreDocumentSync<string | null>('settings/customBrandColor', 'financeTrackerCustomBrandColor', null);
+  const { data: customBgColor, setData: setCustomBgColor } = useFirestoreDocumentSync<string | null>('settings/customBgColor', LOCAL_STORAGE_CUSTOM_BG_COLOR_KEY, null);
   const { data: transactions, setData: setTransactions } = useFirestoreCollectionSync<Transaction>('transactions', LOCAL_STORAGE_KEY, [], item => item.id);
   const { data: accounts, setData: setAccounts } = useFirestoreCollectionSync<Account>('accounts', LOCAL_STORAGE_ACCOUNTS_KEY, [], item => item.id);
   const { data: activeAccountId, setData: setActiveAccountIdState } = useFirestoreDocumentSync<string | null>('settings/activeAccountId', LOCAL_STORAGE_ACTIVE_ACCOUNT_ID_KEY, null);
@@ -181,7 +182,7 @@ const App: React.FC = () => {
   const { data: autoBackupSettings, setData: setAutoBackupSettings } = useFirestoreDocumentSync<AutoBackupSettings>('settings/autoBackupSettings', LOCAL_STORAGE_AUTO_BACKUP_SETTINGS_KEY, { enabled: true, frequency: 'weekly' });
   const { data: lastBackupTimestamp, setData: setLastBackupTimestamp } = useFirestoreDocumentSync<number | null>('settings/lastBackupTimestamp', LOCAL_STORAGE_LAST_BACKUP_TIMESTAMP_KEY, null);
   const { data: defaultViews, setData: setDefaultViews } = useFirestoreDocumentSync<DefaultViewSettings>('settings/defaultViews', LOCAL_STORAGE_DEFAULT_VIEWS_KEY, { finance: 'form', attendance: 'attendanceList', emi: 'emiDashboard', todo: 'todoList' });
-  const { data: defaultDashboardPeriod } = useFirestoreDocumentSync<FilterPeriod>('settings/defaultDashboardPeriod', LOCAL_STORAGE_DEFAULT_DASHBOARD_PERIOD_KEY, 'Monthly');
+  const { data: defaultDashboardPeriod, setData: setDefaultDashboardPeriod } = useFirestoreDocumentSync<FilterPeriod>('settings/defaultDashboardPeriod', LOCAL_STORAGE_DEFAULT_DASHBOARD_PERIOD_KEY, 'Monthly');
   const { data: accountSpecificSettings, setData: setAccountSpecificSettings } = useFirestoreDocumentSync<Record<string, Partial<AccountSpecificSettingsData>>>('settings/accountSpecificSettings', LOCAL_STORAGE_ACCOUNT_SPECIFIC_SETTINGS_KEY, {});
   const { data: vaultItems, setData: setVaultItems } = useFirestoreCollectionSync<VaultItem>('vaultItems', LOCAL_STORAGE_VAULT_ITEMS_KEY, [], item => item.id);
   const { data: modeLayouts, setData: setModeLayouts } = useFirestoreDocumentSync<AppModeLayouts>('settings/modeLayouts', LOCAL_STORAGE_MODE_LAYOUTS_KEY, {
@@ -204,20 +205,12 @@ const App: React.FC = () => {
     [AppMode.TODO]: [
       { id: 't1', title: 'To-do List', sectionKey: 'todoList', isDefault: true },
       { id: 't2', title: 'Day Planner', sectionKey: 'dayPlanner' }
-    ],
-    [AppMode.REPORTS]: [
-      { id: 'r1', title: 'Snapshot Report', sectionKey: 'yearlySnapshot', isDefault: true },
-      { id: 'r2', title: 'Financial Charts', sectionKey: 'charts' },
-      { id: 'r3', title: 'Monthly Summary', sectionKey: 'monthlySummary' },
-      { id: 'r4', title: 'Daily Report', sectionKey: 'dailySummary' }
-    ],
-    [AppMode.GALLERY]: [
-      { id: 'g1', title: 'Vault', sectionKey: 'documentVault', isDefault: true }
     ]
   });
   const { data: isLeftSidebarVisible, setData: setIsLeftSidebarVisible } = useFirestoreDocumentSync<boolean>('settings/isLeftSidebarVisible', 'isLeftSidebarVisible', true);
   const { data: recurringReminders, setData: setRecurringReminders } = useFirestoreCollectionSync<CustomReminder>('customReminders', LOCAL_STORAGE_RECURRING_REMINDERS_KEY, [], item => item.id);
   const { data: profilePicture, setData: setProfilePicture } = useFirestoreDocumentSync<string | null>('settings/profilePicture', LOCAL_STORAGE_PROFILE_PICTURE_KEY, null);
+  const { data: primaryAccountId, setData: setPrimaryAccountId } = useFirestoreDocumentSync<string | null>('settings/primaryAccountId', LOCAL_STORAGE_PRIMARY_ACCOUNT_ID_KEY, null);
   const { data: lockScreenPicture, setData: setLockScreenPicture } = useFirestoreDocumentSync<string | null>('settings/lockScreenPicture', LOCAL_STORAGE_LOCK_SCREEN_PICTURE_KEY, null);
   const { data: headerBackgroundImage, setData: setHeaderBackgroundImage } = useFirestoreDocumentSync<string | null>('settings/headerBackgroundImage', LOCAL_STORAGE_HEADER_BACKGROUND_IMAGE_KEY, null);
   const { data: loginBackground, setData: setLoginBackground } = useFirestoreDocumentSync<string | null>('settings/loginBackground', LOCAL_STORAGE_LOGIN_BACKGROUND_KEY, null);
@@ -287,6 +280,8 @@ const App: React.FC = () => {
   const [isAppLocked, setIsAppLocked] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isTransactionTypeConfirmed, setIsTransactionTypeConfirmed] = useState(false);
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [calendarViewMode, setCalendarViewMode] = useState<'monthly' | 'yearly'>('monthly');
 
   useEffect(() => {
     if (activePeriodLabel === 'Monthly') {
@@ -765,6 +760,21 @@ const App: React.FC = () => {
     });
   }, [safeTodos, dashboardStartDate, dashboardEndDate]);
 
+  const currentPeriodRecharges = useMemo(() => {
+    return safeRechargePlans.filter(p => {
+        if (p.isDeleted) return false;
+        return true; // Recharges are usually shown if active, but maybe filtered by next recharge date?
+        // For simplicity showing all active ones in current period overview
+    });
+  }, [safeRechargePlans]);
+
+  const currentPeriodSubscriptions = useMemo(() => {
+    return safeSubscriptionPlans.filter(p => {
+        if (p.isDeleted) return false;
+        return true;
+    });
+  }, [safeSubscriptionPlans]);
+
   const activePeriodDisplay = useMemo(() => {
     if (activePeriodLabel === 'All time') return 'All Time';
     if (dashboardStartDate && dashboardEndDate) {
@@ -870,11 +880,8 @@ const App: React.FC = () => {
     setActiveMode(newMode);
     let sections: SectionKey[] = [];
     if (newMode === AppMode.REPORTS) {
-      const layout = modeLayouts[newMode] || [];
-      const defaultPage = layout.find(p => p.isDefault) || layout[0];
-      sections = [defaultPage?.sectionKey || 'yearlySnapshot'];
-      const defaultPageIndex = layout.findIndex(p => p.isDefault);
-      setPagerIndex(defaultPageIndex !== -1 ? defaultPageIndex : 0);
+      sections = ['reportsDashboard', 'charts'];
+      setPagerIndex(0);
     } else {
       const layout = modeLayouts[newMode] || [];
       const defaultPage = layout.find(p => p.isDefault) || layout[0];
@@ -899,8 +906,8 @@ const App: React.FC = () => {
     }
   }, [currentLayout]);
 
-  const formatCurrency = (amount: number) => 
-    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(amount);
+  const formatCurrency = useCallback((amount: number) => 
+    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(amount), []);
 
   const syncRechargeTracker = useCallback((provider: string, allTransactions: Transaction[]) => {
     const rechargeTx = allTransactions
@@ -1809,8 +1816,8 @@ const App: React.FC = () => {
     { key: 'pdfImporter', modes: [AppMode.FINANCE], component: <TransactionImporter onImportTransactions={handleImportTransactions} incomeCategories={incomeCategoriesList} expenseCategories={expenseCategories} /> },
     { key: 'accountManagement', modes: [AppMode.FINANCE], component: <AccountManager transactions={safeTransactions} /> },
     { key: 'categoryManagement', modes: [AppMode.FINANCE], component: <CategoryManager incomeCategories={incomeCategoriesList} expenseCategories={expenseCategories} onAddIncomeCategory={handleAddIncomeCategory} onEditIncomeCategory={handleEditIncomeCategory} onDeleteIncomeCategory={handleDeleteIncomeCategory} onAddExpenseCategory={handleAddExpenseCategory} onEditExpenseCategory={handleEditExpenseCategory} onDeleteExpenseCategory={handleDeleteExpenseCategory} /> },
-    { key: 'documentVault', modes: [AppMode.FINANCE, AppMode.GALLERY], component: <DocumentVault vaultItems={safeVaultItems.filter(v => !v.isDeleted)} onAddItem={handleAddVaultItem} onDeleteItem={handleDeleteVaultItem} addToast={addToast} onUnlockRequest={(onSuccess) => onSuccess()} isVaultUnlocked={true} appPin={appPin} onPopOut={overlaySettings.enabledFeatures.includes('documentVault') ? (title, item) => { setFloatingOverlayContent({ type: 'vault_item', title, data: item }); setIsFloatingOverlayOpen(true); } : undefined} /> },
-    { key: 'digitalIdVault', modes: [AppMode.FINANCE, AppMode.GALLERY], component: <DigitalIDVault /> },
+    { key: 'documentVault', modes: [AppMode.FINANCE], component: <DocumentVault vaultItems={safeVaultItems.filter(v => !v.isDeleted)} onAddItem={handleAddVaultItem} onDeleteItem={handleDeleteVaultItem} addToast={addToast} onUnlockRequest={(onSuccess) => onSuccess()} isVaultUnlocked={true} appPin={appPin} onPopOut={overlaySettings.enabledFeatures.includes('documentVault') ? (title, item) => { setFloatingOverlayContent({ type: 'vault_item', title, data: item }); setIsFloatingOverlayOpen(true); } : undefined} /> },
+    { key: 'digitalIdVault', modes: [AppMode.FINANCE], component: <DigitalIDVault /> },
     { key: 'notificationHistory', modes: [AppMode.FINANCE], component: <NotificationHistory notifications={safeNotificationHistory} onClearHistory={() => setNotificationHistory([])} accounts={safeAccounts} upcomingPayments={[]} onViewSchedule={() => {}} appTitle={appTitle} />},
     { key: 'appLockSettings', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO], component: <AppLockSettings currentPin={appPin} onPinSet={setAppPin} onPinRemoved={() => setAppPin(null)} onPinChanged={(old, next) => { if(old === String(appPin)) { setAppPin(next); return true; } return false; }} addToast={addToast} username={loggedInUser?.username || 'Guest'} /> },
     { key: 'miniStatement', modes: [AppMode.FINANCE], component: (
@@ -1867,8 +1874,7 @@ const App: React.FC = () => {
             <RepeatedTransactionsReport transactions={currentPeriodTransactions} />
         </div>
     ) },
-    { key: 'monthlySummary', modes: [AppMode.FINANCE, AppMode.REPORTS], component: <MonthlySummaryView transactions={safeTransactions.filter(t => !t.isDeleted)} accounts={safeAccounts.filter(a => !a.isDeleted)} activeAccountId={activeAccountId} incomeCategories={incomeCategoriesList} expenseCategories={expenseCategories} appTitle={appTitle} onEditTransaction={(tx) => { setTransactionToEdit(tx); handleShowSection('form'); }} onDeleteTransaction={handleDeleteTransaction} onUpdateTransaction={handleUpdateTransaction} attendanceEntries={safeAttendanceEntries} dayPlannerEntries={safeDayPlannerEntries.filter(e => !e.isDeleted)} savedAmortizationSchedules={safeSavedAmortizationSchedules.filter(s => !s.isDeleted)} budgets={budgetSettings} todos={todos.filter(t => !t.isDeleted)} subscriptionPlans={subscriptionPlans.filter(s => !s.isDeleted)} rechargePlans={rechargePlans.filter(r => !r.isDeleted)} /> },
-    {key: 'yearlySnapshot', modes: [AppMode.FINANCE, AppMode.REPORTS], component: <SnapshotReport transactions={safeTransactions.filter(t => !t.isDeleted)} attendanceEntries={safeAttendanceEntries} dayPlannerEntries={safeDayPlannerEntries.filter(e => !e.isDeleted)} budgets={budgetSettings} todos={todos.filter(t => !t.isDeleted)} subscriptionPlans={subscriptionPlans.filter(s => !s.isDeleted)} rechargePlans={rechargePlans.filter(r => !r.isDeleted)} activeAccountId={activeAccountId} appTitle={appTitle} username={loggedInUser?.username} /> },
+    { key: 'monthlySummary', modes: [AppMode.FINANCE], component: <MonthlySummaryView transactions={safeTransactions.filter(t => !t.isDeleted)} accounts={safeAccounts.filter(a => !a.isDeleted)} activeAccountId={activeAccountId} incomeCategories={incomeCategoriesList} expenseCategories={expenseCategories} appTitle={appTitle} onEditTransaction={(tx) => { setTransactionToEdit(tx); handleShowSection('form'); }} onDeleteTransaction={handleDeleteTransaction} onUpdateTransaction={handleUpdateTransaction} attendanceEntries={safeAttendanceEntries} dayPlannerEntries={safeDayPlannerEntries.filter(e => !e.isDeleted)} savedAmortizationSchedules={safeSavedAmortizationSchedules.filter(s => !s.isDeleted)} /> },
     { key: 'dailySummary', modes: [AppMode.FINANCE, AppMode.REPORTS], component: (
       <div className="space-y-4">
         <div className="flex justify-between items-center bg-bg-secondary-themed p-4 rounded-xl shadow-sm border border-transparent">
@@ -1979,11 +1985,11 @@ const App: React.FC = () => {
     { key: 'userManual', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO], component: <UserManual appTitle={appTitle} /> },
     { key: 'userManagement', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO], component: <UserManagement users={safeUserCredentials.filter(u => !u.isDeleted && u.id !== 'admin')} onAddUser={handleAddUser} onDeleteUser={handleDeleteUser} onEditPassword={handleEditUserPassword} /> },
     { key: 'dataManagement', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO], component: <DataManagementComponent onExportAllData={handleExportAllData} onImportData={handleImportData} onClearAllData={handleClearAllData} addToast={addToast} /> },
-    { key: 'appSettings', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO], component: <AppSettingsComponent appTitle={appTitle} setAppTitle={setAppTitle} customBrandColor={customBrandColor} setCustomBrandColor={setCustomBrandColor} monthlySalary={monthlySalary} onSetMonthlySalary={setMonthlySalary} selectedWeeklyOffDay={selectedWeeklyOffDay} onSetSelectedWeeklyOffDay={setSelectedWeeklyOffDay} monthlyOffLimits={safeMonthlyOffLimits} onSetMonthlyOffLimit={handleSetMonthlyOffLimit} financialMonthStartDay={financialMonthStartDay} onSetFinancialMonthStartDay={setFinancialMonthStartDay} financialMonthEndDay={financialMonthEndDay} onSetFinancialMonthEndDay={setFinancialMonthEndDay} financialYearStartMonth={financialYearStartMonth} financialYearStartDay={financialYearStartDay} financialYearEndMonth={financialYearEndMonth} financialYearEndDay={financialYearEndDay} onSetFinancialYear={handleSetFinancialYear} sessionTimeoutDurationSeconds={sessionTimeoutDurationSeconds} setSessionTimeoutDurationSeconds={setSessionTimeoutDurationSeconds} useDigitalFontForTimers={useDigitalFontForTimers} setUseDigitalFontForTimers={setUseDigitalFontForTimers} isDynamicIslandEnabled={false} onSetIsDynamicIslandEnabled={() => {}} defaultViews={defaultViews} onSetDefaultViews={setDefaultViews} defaultDashboardPeriod={'Daily'} onSetDefaultDashboardPeriod={() => {}} addToast={addToast} loggedInRole={loggedInRole} onChangeAdminPassword={() => true} autoBackupSettings={autoBackupSettings} setAutoBackupSettings={setAutoBackupSettings} lastBackupTimestamp={lastBackupTimestamp} onBackupNow={handleExportAllData} salaryDeductions={safeSalaryDeductions} onAddSalaryDeduction={handleAddSalaryDeduction} onDeleteSalaryDeduction={handleDeleteSalaryDeduction} festiveDates={safeFestiveDates} onAddFestiveDate={handleAddFestiveDate} onDeleteFestiveDate={handleDeleteFestiveDate} modeLayouts={modeLayouts} onSetModeLayouts={setModeLayouts} username={loggedInUser?.username || 'User'} overlaySettings={overlaySettings} onSetOverlaySettings={setOverlaySettings} /> },
+    { key: 'appSettings', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO], component: <AppSettingsComponent appTitle={appTitle} setAppTitle={setAppTitle} customBrandColor={customBrandColor} setCustomBrandColor={setCustomBrandColor} customBgColor={customBgColor} setCustomBgColor={setCustomBgColor} monthlySalary={monthlySalary} onSetMonthlySalary={setMonthlySalary} selectedWeeklyOffDay={selectedWeeklyOffDay} onSetSelectedWeeklyOffDay={setSelectedWeeklyOffDay} monthlyOffLimits={safeMonthlyOffLimits} onSetMonthlyOffLimit={handleSetMonthlyOffLimit} financialMonthStartDay={financialMonthStartDay} onSetFinancialMonthStartDay={setFinancialMonthStartDay} financialMonthEndDay={financialMonthEndDay} onSetFinancialMonthEndDay={setFinancialMonthEndDay} financialYearStartMonth={financialYearStartMonth} financialYearStartDay={financialYearStartDay} financialYearEndMonth={financialYearEndMonth} financialYearEndDay={financialYearEndDay} onSetFinancialYear={handleSetFinancialYear} sessionTimeoutDurationSeconds={sessionTimeoutDurationSeconds} setSessionTimeoutDurationSeconds={setSessionTimeoutDurationSeconds} useDigitalFontForTimers={useDigitalFontForTimers} setUseDigitalFontForTimers={setUseDigitalFontForTimers} isDynamicIslandEnabled={false} onSetIsDynamicIslandEnabled={() => {}} defaultViews={defaultViews} onSetDefaultViews={setDefaultViews} defaultDashboardPeriod={defaultDashboardPeriod} onSetDefaultDashboardPeriod={setDefaultDashboardPeriod} addToast={addToast} loggedInRole={loggedInRole} onChangeAdminPassword={() => true} autoBackupSettings={autoBackupSettings} setAutoBackupSettings={setAutoBackupSettings} lastBackupTimestamp={lastBackupTimestamp} onBackupNow={handleExportAllData} salaryDeductions={safeSalaryDeductions} onAddSalaryDeduction={handleAddSalaryDeduction} onDeleteSalaryDeduction={handleDeleteSalaryDeduction} festiveDates={safeFestiveDates} onAddFestiveDate={handleAddFestiveDate} onDeleteFestiveDate={handleDeleteFestiveDate} modeLayouts={modeLayouts} onSetModeLayouts={setModeLayouts} username={loggedInUser?.username || 'User'} overlaySettings={overlaySettings} onSetOverlaySettings={setOverlaySettings} accounts={safeAccounts} primaryAccountId={primaryAccountId} onSetPrimaryAccountId={setPrimaryAccountId} /> },
     { key: 'recycleBin', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO], component: <RecycleBinComponent allTransactions={safeTransactions} allAccounts={safeAccounts} allSchedules={safeSavedAmortizationSchedules} allUserCredentials={safeUserCredentials} allTodos={safeTodos} allDayPlannerEntries={safeDayPlannerEntries} allSubscriptionPlans={safeSubscriptionPlans} allRechargePlans={safeRechargePlans} allMenuItems={safeMenuItems} allVaultItems={safeVaultItems} onRestoreItem={handleRestoreItem} onPermanentlyDeleteItem={handlePermanentlyDeleteItem} onEmptyRecycleBin={handleEmptyRecycleBin} loggedInRole={loggedInRole} /> },
     { key: 'viewRawLocalStorageTable', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO], component: <ViewRawLocalStorageTable dbMasterKey={dbMasterKey} setDbMasterKey={setDbMasterKey} /> },
-    { key: 'snapshot', modes: [AppMode.FINANCE], component: <Dashboard accounts={safeAccounts} transactions={currentPeriodTransactions} activeAccount={safeAccounts.find(a => a.id === activeAccountId)} onEditTransaction={(tx) => { setTransactionToEdit(tx); handleShowSection('form'); }} budgetSettings={safeBudgetSettings} financialMonthStartDay={financialMonthStartDay} financialMonthEndDay={financialMonthEndDay} openingBalance={openingBalanceForPassbook} onShowSection={handleShowSection} isBalanceVisible={isBalanceVisible} setIsBalanceVisible={setIsBalanceVisible} startDate={dashboardStartDate} endDate={dashboardEndDate} /> }
-  ], [safeTransactions, currentPeriodTransactions, safeAccounts, activeAccountId, safeMenuItems, suggestedTransactionToFill, transactionToEdit, scheduleToEdit, safeSavedAmortizationSchedules, safeTodos, safeDayPlannerEntries, safeAttendanceEntries, attendanceHistory, safeMonthlyOffLimits, monthlySalary, safeSalaryDeductions, safeSubscriptionPlans, safeRechargePlans, safeVaultItems, safeNotificationHistory, safeFestiveDates, safeUserCredentials, appTitle, customBrandColor, setAppTitle, setCustomBrandColor, addToast, addTransactionHandler, handleShowSection, selectedWeeklyOffDay, financialMonthStartDay, financialMonthEndDay, financialYearStartMonth, financialYearStartDay, financialYearEndMonth, financialYearEndDay, sessionTimeoutDurationSeconds, useDigitalFontForTimers, defaultViews, autoBackupSettings, handleSetMonthlyOffLimit, handleSetFinancialYear, loggedInRole, setMonthlySalary, setSelectedWeeklyOffDay, setFinancialMonthStartDay, setFinancialMonthEndDay, setSessionTimeoutDurationSeconds, setUseDigitalFontForTimers, setDefaultViews, setAutoBackupSettings, incomeCategoriesList, expenseCategories, accountSpecificSettings, handleExportAllData, handleImportData, handleClearAllData, handleResetLiquidityBalances, lastBackupTimestamp, handleLoadSchedule, handleDeleteSchedule, dashboardStartDate, dashboardEndDate, activePeriodLabel, openingBalanceForPassbook, handleImportTransactions, appPin, lockType, appPattern, handleRecoverLock, safeBudgetSettings, handleSetBudget, handleDeleteBudget, handleAddIncomeCategory, handleEditIncomeCategory, handleDeleteIncomeCategory, handleAddExpenseCategory, handleEditExpenseCategory, handleDeleteExpenseCategory, handleUpdateTransaction, handleDeleteTransaction, pagerIndex, setPagerIndex, overlaySettings, setOverlaySettings, setIsGlobalDateFilterOpen, currentMonthlyIdentifier, isTransactionTypeConfirmed]);
+    { key: 'snapshot', modes: [AppMode.FINANCE, AppMode.ATTENDANCE, AppMode.EMI, AppMode.TODO, AppMode.REPORTS], component: <Dashboard accounts={safeAccounts} transactions={currentPeriodTransactions} attendanceEntries={currentPeriodAttendance} schedules={currentPeriodSchedules} todos={currentPeriodTodos} rechargePlans={currentPeriodRecharges} subscriptionPlans={currentPeriodSubscriptions} allTransactions={safeTransactions} allAttendanceEntries={safeAttendanceEntries} allSchedules={safeSavedAmortizationSchedules} allTodos={safeTodos} allRechargePlans={safeRechargePlans} allSubscriptionPlans={safeSubscriptionPlans} activeAccount={safeAccounts.find(a => a.id === activeAccountId)} onEditTransaction={(tx) => { setTransactionToEdit(tx); handleShowSection('form'); }} budgetSettings={safeBudgetSettings} financialMonthStartDay={financialMonthStartDay} financialMonthEndDay={financialMonthEndDay} openingBalance={openingBalanceForPassbook} onShowSection={handleShowSection} isBalanceVisible={isBalanceVisible} setIsBalanceVisible={setIsBalanceVisible} startDate={dashboardStartDate} endDate={dashboardEndDate} formatCurrency={formatCurrency} onDateSelect={(date) => { setSuggestedTransactionToFill({ date }); handleShowSection('form'); }} onOpenDateDetails={(date) => { setSelectedDetailDate(date); setIsDetailModalOpen(true); }} calendarDate={calendarDate} onCalendarDateChange={setCalendarDate} calendarViewMode={calendarViewMode} onCalendarViewModeChange={setCalendarViewMode} primaryAccountId={primaryAccountId} /> }
+  ], [safeTransactions, currentPeriodTransactions, safeAccounts, activeAccountId, safeMenuItems, suggestedTransactionToFill, transactionToEdit, scheduleToEdit, safeSavedAmortizationSchedules, safeTodos, safeDayPlannerEntries, safeAttendanceEntries, attendanceHistory, safeMonthlyOffLimits, monthlySalary, safeSalaryDeductions, safeSubscriptionPlans, safeRechargePlans, safeVaultItems, safeNotificationHistory, safeFestiveDates, safeUserCredentials, appTitle, customBrandColor, setAppTitle, setCustomBrandColor, addToast, addTransactionHandler, handleShowSection, selectedWeeklyOffDay, financialMonthStartDay, financialMonthEndDay, financialYearStartMonth, financialYearStartDay, financialYearEndMonth, financialYearEndDay, sessionTimeoutDurationSeconds, useDigitalFontForTimers, defaultViews, autoBackupSettings, handleSetMonthlyOffLimit, handleSetFinancialYear, loggedInRole, setMonthlySalary, setSelectedWeeklyOffDay, setFinancialMonthStartDay, setFinancialMonthEndDay, setSessionTimeoutDurationSeconds, setUseDigitalFontForTimers, setDefaultViews, setAutoBackupSettings, incomeCategoriesList, expenseCategories, accountSpecificSettings, handleExportAllData, handleImportData, handleClearAllData, handleResetLiquidityBalances, lastBackupTimestamp, handleLoadSchedule, handleDeleteSchedule, dashboardStartDate, dashboardEndDate, activePeriodLabel, openingBalanceForPassbook, handleImportTransactions, appPin, lockType, appPattern, handleRecoverLock, safeBudgetSettings, handleSetBudget, handleDeleteBudget, handleAddIncomeCategory, handleEditIncomeCategory, handleDeleteIncomeCategory, handleAddExpenseCategory, handleEditExpenseCategory, handleDeleteExpenseCategory, handleUpdateTransaction, handleDeleteTransaction, pagerIndex, setPagerIndex, overlaySettings, setOverlaySettings, setIsGlobalDateFilterOpen, currentMonthlyIdentifier, isTransactionTypeConfirmed, calendarDate]);
 
   useEffect(() => {
     const update = () => {
@@ -2278,7 +2284,6 @@ const App: React.FC = () => {
           </main>
         </div>
         {toastInfo && <ToastNotification {...toastInfo} onClose={() => setToastInfo(null)} />}
-        
         {/* Transaction Detail Modal for Calendar Drill-down */}
         {selectedDetailDate && (
             <TransactionDetailModal 
@@ -2286,6 +2291,12 @@ const App: React.FC = () => {
                 onClose={() => setIsDetailModalOpen(false)} 
                 date={selectedDetailDate} 
                 transactions={safeTransactions.filter(t => t.date === selectedDetailDate && !t.isDeleted && (!activeAccountId || t.accountId === activeAccountId))} 
+                allTransactions={safeTransactions}
+                attendanceEntries={safeAttendanceEntries}
+                schedules={safeSavedAmortizationSchedules}
+                todos={safeTodos}
+                rechargePlans={safeRechargePlans}
+                subscriptionPlans={safeSubscriptionPlans}
                 accountName={safeAccounts.find(a => a.id === activeAccountId)?.name} 
                 appTitle={appTitle} 
                 showDownloadButton={true} 

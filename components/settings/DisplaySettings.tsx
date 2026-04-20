@@ -2,10 +2,11 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { TypeIcon, SparklesIcon, BellIcon, ArrowPathIcon, PhotoIcon, ShieldCheckIcon } from '../Icons';
 import { useTheme } from '../../contexts/ThemeContext';
-import { ToastType, SectionKey, AppMode, DefaultViewSettings, AppModeLayouts } from '../../types';
+import { ToastType, SectionKey, AppMode, DefaultViewSettings, AppModeLayouts, Account } from '../../types';
 import { allSectionKeysWithConfig } from '../../constants';
 import { FilterPeriod } from '../DateFilter';
 import ProfilePicture from '../ProfilePicture';
+import { ShieldCheckIcon as AdminIcon } from '../Icons';
 
 interface DisplaySettingsProps {
   appTitle: string;
@@ -26,6 +27,9 @@ interface DisplaySettingsProps {
   onSetModeLayouts: (layouts: AppModeLayouts) => void;
   addToast: (message: string, type: ToastType) => void;
   username: string;
+  accounts: Account[];
+  primaryAccountId: string | null;
+  onSetPrimaryAccountId: (id: string | null) => void;
 }
 
 const DisplaySettings: React.FC<DisplaySettingsProps> = ({
@@ -38,7 +42,10 @@ const DisplaySettings: React.FC<DisplaySettingsProps> = ({
   defaultDashboardPeriod, onSetDefaultDashboardPeriod,
   modeLayouts, onSetModeLayouts,
   addToast,
-  username
+  username,
+  accounts,
+  primaryAccountId,
+  onSetPrimaryAccountId
 }) => {
   const { currentThemeColors } = useTheme();
   const [notifPermission, setNotifPermission] = useState<string>(Notification.permission);
@@ -322,6 +329,34 @@ const DisplaySettings: React.FC<DisplaySettingsProps> = ({
                 style={isDynamicIslandEnabled ? { backgroundColor: currentThemeColors.brandPrimary } : {}}
               ></div>
             </div>
+        </div>
+      </div>
+
+      <div className="pt-6 border-t border-border-secondary">
+        <h4 className="text-md font-semibold mb-3 text-left flex items-center" style={{ color: currentThemeColors.textBase }}>
+          <AdminIcon className="w-5 h-5 mr-2 text-brand-primary" /> Master/Admin Account
+        </h4>
+        <div className="p-4 rounded-2xl bg-bg-accent-themed/30 border border-border-secondary">
+          <label htmlFor="primary-account-select" className={labelBaseClasses}>Select Admin Account</label>
+          <select 
+            id="primary-account-select"
+            value={primaryAccountId || ''}
+            onChange={(e) => {
+              const newId = e.target.value || null;
+              onSetPrimaryAccountId(newId);
+              addToast("Primary account updated.", "success");
+            }}
+            className={inputBaseClasses}
+          >
+            <option value="">No Admin Account Selected</option>
+            {accounts.filter(a => !a.isDeleted).map(acc => (
+              <option key={acc.id} value={acc.id}>{acc.name}</option>
+            ))}
+          </select>
+          <p className="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-widest leading-relaxed">
+            The selected Admin account will show all insights (Attendance, EMI, Todos) in the Unified Calendar. 
+            All other accounts will only show Transactions for focused viewing.
+          </p>
         </div>
       </div>
 

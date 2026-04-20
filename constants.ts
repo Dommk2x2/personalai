@@ -88,6 +88,8 @@ export const LOCAL_STORAGE_UNREAD_RECEIPTS_COUNT_KEY = 'financeTrackerUnreadRece
 export const LOCAL_STORAGE_VAULT_ITEMS_KEY = 'financeTrackerVaultItems';
 export const LOCAL_STORAGE_OVERLAY_SETTINGS_KEY = 'financeTrackerOverlaySettings';
 export const LOCAL_STORAGE_DATABASE_PASSWORD_KEY = 'financeTrackerMasterDatabaseKey';
+export const LOCAL_STORAGE_PRIMARY_ACCOUNT_ID_KEY = 'financeTrackerPrimaryAccountId';
+export const LOCAL_STORAGE_CUSTOM_BG_COLOR_KEY = 'financeTrackerCustomBgColor';
 
 // Timer Specific Keys
 export const LOCAL_STORAGE_TIMER_TITLE_KEY = 'financeTrackerTimerTitle';

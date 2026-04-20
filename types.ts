@@ -339,7 +339,7 @@ export type UserFeatureKey =
   | 'subscriptionTracker' | 'rechargeTracker' | 'accountSpecificSettings' | 'menuItemManagement'
   | 'upiPayment' | 'pdfImporter' | 'newYearCountdown' | 'documentVault' | 'digitalIdVault' | 'userManual' | 'monthlySummary' | 'benefitPassbook' | 'dailySummary';
 
-export type SectionKey = UserFeatureKey | 'userFeatureControl' | 'userManagement' | 'dataManagement' | 'appSettings' | 'viewAccountsTable' | 'viewSchedulesTable' | 'viewAllTransactionsTable' | 'recycleBin' | 'snapshot' | 'viewRawLocalStorageTable' | 'yearlySnapshot' | 'vault';
+export type SectionKey = UserFeatureKey | 'userFeatureControl' | 'userManagement' | 'dataManagement' | 'appSettings' | 'viewAccountsTable' | 'viewSchedulesTable' | 'viewAllTransactionsTable' | 'recycleBin' | 'snapshot' | 'viewRawLocalStorageTable';
 
 export type MenuGroupKey = 'entry_tools' | 'loan_tools' | 'views' | 'attendance_group' | 'reports_group';
 

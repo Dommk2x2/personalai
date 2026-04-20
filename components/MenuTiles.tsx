@@ -50,7 +50,7 @@ export const MENU_GROUPS: MenuGroup[] = [
     roles: [Role.USER, Role.ADMIN],
     modes: [AppMode.FINANCE],
     tiles: [
-      { key: 'snapshot', label: 'Dashboard', icon: ChartIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
+      { key: 'snapshot', label: 'Dashboard', icon: ChartIcon, roles: [Role.ADMIN, Role.USER], modes: ALL_MODES },
       { key: 'history', label: 'Logbook', icon: HistoryIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
       { key: 'passbook', label: 'Passbook', icon: PassbookIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
       { key: 'financialCalendar', label: 'Calendar', icon: CalendarIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
@@ -58,7 +58,6 @@ export const MENU_GROUPS: MenuGroup[] = [
       { key: 'dailySummary', label: 'Daily Summary', icon: CalendarIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
       { key: 'monthlySummary', label: 'Monthly Summary', icon: DocumentChartBarIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
       { key: 'miniStatement', label: 'Statement', icon: ListBulletIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
-      { key: 'yearlySnapshot', label: 'Snapshots', icon: TargetIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
       { key: 'notificationHistory', label: 'Alerts', icon: ShieldCheckIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.FINANCE] },
     ]
   },
@@ -81,7 +80,8 @@ export const MENU_GROUPS: MenuGroup[] = [
       roles: [Role.USER, Role.ADMIN],
       modes: [AppMode.ATTENDANCE], 
       tiles: [
-          { key: 'attendanceList', label: 'Log', icon: FormIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.ATTENDANCE] },
+      { key: 'snapshot', label: 'Dashboard', icon: ChartIcon, roles: [Role.ADMIN, Role.USER], modes: ALL_MODES },
+      { key: 'attendanceList', label: 'Log', icon: FormIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.ATTENDANCE] },
           { key: 'attendanceView', label: 'Review', icon: ListBulletIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.ATTENDANCE] },
           { key: 'attendanceCalendar', label: 'Grid', icon: CalendarIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.ATTENDANCE] },
           { key: 'attendanceReports', label: 'Reports', icon: ChartIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.ATTENDANCE] },
@@ -96,7 +96,8 @@ export const MENU_GROUPS: MenuGroup[] = [
       roles: [Role.USER, Role.ADMIN],
       modes: [AppMode.TODO],
       tiles: [
-          { key: 'todoList', label: 'Tasks', icon: ListChecksIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.TODO] },
+      { key: 'snapshot', label: 'Dashboard', icon: ChartIcon, roles: [Role.ADMIN, Role.USER], modes: ALL_MODES },
+      { key: 'todoList', label: 'Tasks', icon: ListChecksIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.TODO] },
           { key: 'dayPlanner', label: 'Timeline', icon: ClipboardDocumentCheckIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.TODO] },
           { key: 'horoscope', label: 'Stars', icon: SparklesIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.TODO] },
           { key: 'subscriptionTracker', label: 'Subs', icon: CreditCardIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.TODO] },
@@ -111,7 +112,8 @@ export const MENU_GROUPS: MenuGroup[] = [
       roles: [Role.USER, Role.ADMIN],
       modes: [AppMode.EMI],
       tiles: [
-          { key: 'amortizationSchedule', label: 'Calc', icon: CalculatorIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.EMI] },
+      { key: 'snapshot', label: 'Dashboard', icon: ChartIcon, roles: [Role.ADMIN, Role.USER], modes: ALL_MODES },
+      { key: 'amortizationSchedule', label: 'Calc', icon: CalculatorIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.EMI] },
           { key: 'emiDashboard', label: 'Stats', icon: ChartIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.EMI] },
           { key: 'emiCalendar', label: 'View', icon: CalendarIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.EMI] },
       ]
@@ -123,8 +125,8 @@ export const MENU_GROUPS: MenuGroup[] = [
       roles: [Role.USER, Role.ADMIN],
       modes: [AppMode.REPORTS],
       tiles: [
-          { key: 'yearlySnapshot', label: 'Executive View', icon: SparklesIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.REPORTS] },
-          { key: 'reportsDashboard', label: 'Analytics', icon: ChartIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.REPORTS] },
+      { key: 'snapshot', label: 'Dashboard', icon: ChartIcon, roles: [Role.ADMIN, Role.USER], modes: ALL_MODES },
+      { key: 'reportsDashboard', label: 'Analytics', icon: ChartIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.REPORTS] },
           { key: 'dailySummary', label: 'Daily Summary', icon: CalendarIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.REPORTS] },
           { key: 'attendanceReports', label: 'Attendance', icon: DocumentChartBarIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.REPORTS] },
           { key: 'salaryReport', label: 'Payslips', icon: BanknotesIcon, roles: [Role.ADMIN, Role.USER], modes: [AppMode.REPORTS] },
