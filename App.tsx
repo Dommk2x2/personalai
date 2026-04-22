@@ -281,6 +281,17 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isTransactionTypeConfirmed, setIsTransactionTypeConfirmed] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
+
+  useEffect(() => {
+    const startOfMonth = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), 1);
+    const endOfMonth = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 0);
+
+    handleDateRangeChange(
+        startOfMonth.toISOString().split('T')[0],
+        endOfMonth.toISOString().split('T')[0],
+        'Monthly'
+    );
+  }, [calendarDate]);
   const [calendarViewMode, setCalendarViewMode] = useState<'monthly' | 'yearly'>('monthly');
 
   useEffect(() => {

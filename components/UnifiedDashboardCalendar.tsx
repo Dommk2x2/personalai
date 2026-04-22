@@ -235,26 +235,41 @@ const UnifiedDashboardCalendar: React.FC<UnifiedDashboardCalendarProps> = ({
           onClick={() => isWithinFin && onOpenDateDetails(dateStr)}
         >
           {/* Day Header */}
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-start">
             <span className={`${isYearly ? 'text-[7px]' : 'text-[10px]'} font-black ${isToday ? 'text-brand-primary' : 'text-text-muted-themed'}`}>
               {loopDate.getDate()}
             </span>
             
-            {!isYearly && data?.attendance && (
-              <div 
-                className="px-1 py-0.5 rounded-[4px] text-[7px] font-black uppercase tracking-tighter"
-                style={{ backgroundColor: getAttendanceStyle(data.attendance.status).bg, color: getAttendanceStyle(data.attendance.status).color }}
-              >
-                {getAttendanceStyle(data.attendance.status).label}
-              </div>
-            )}
+            <div className="flex items-center gap-1 mb-1">
+              {/* Income/Expense dots */}
+              {!isYearly && data?.finance && (
+                <div className="flex gap-0.5">
+                  {data.finance.income > 0 && <div className="w-1.5 h-1.5 rounded-full shadow-[0_0_2px_rgba(0,0,0,0.1)]" style={{ backgroundColor: currentThemeColors.income }} title="Income" />}
+                  {data.finance.expenses > 0 && <div className="w-1.5 h-1.5 rounded-full shadow-[0_0_2px_rgba(0,0,0,0.1)]" style={{ backgroundColor: currentThemeColors.expense }} title="Expense" />}
+                </div>
+              )}
+
+              {!isYearly && data?.attendance && (
+                <div 
+                  className="px-1 py-0.5 rounded-[4px] text-[7px] font-black uppercase tracking-tighter"
+                  style={{ backgroundColor: getAttendanceStyle(data.attendance.status).bg, color: getAttendanceStyle(data.attendance.status).color }}
+                >
+                  {getAttendanceStyle(data.attendance.status).label}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Indicators row simplified for yearly */}
           <div className={`mt-auto flex flex-wrap gap-0.5 ${isYearly ? 'min-h-[4px]' : 'min-h-[14px]'}`}>
-             {isYearly ? (
+              {isYearly ? (
                 <>
-                  {data?.finance && <div className="w-1 h-1 rounded-full bg-brand-primary" />}
+                  {data?.finance && (
+                    <div className="flex gap-0.5">
+                      {data.finance.income > 0 && <div className="w-1 h-1 rounded-full" style={{ backgroundColor: currentThemeColors.income }} />}
+                      {data.finance.expenses > 0 && <div className="w-1 h-1 rounded-full" style={{ backgroundColor: currentThemeColors.expense }} />}
+                    </div>
+                  )}
                   {data?.attendance && (
                     <div 
                       className="w-1 h-1 rounded-full" 
@@ -398,8 +413,8 @@ const UnifiedDashboardCalendar: React.FC<UnifiedDashboardCalendarProps> = ({
         </div>
         
         <div className="flex gap-4 text-[9px] font-black uppercase tracking-widest text-text-muted-themed hidden xl:flex">
-          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-brand-primary"></div> Finance</div>
-          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500"></div> Present</div>
+          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: currentThemeColors.income }}></div> Income</div>
+          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: currentThemeColors.expense }}></div> Expense</div>
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-500"></div> EMI</div>
         </div>
       </div>

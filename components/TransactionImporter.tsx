@@ -8,7 +8,7 @@ import { SparklesIcon, AlertTriangleIcon, TrashIcon } from './Icons';
 import { useAccounts } from '../contexts/AccountContext';
 
 // Configure the worker source for pdf.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://esm.sh/pdfjs-dist@4.5.136/build/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://esm.sh/pdfjs-dist@5.4.624/build/pdf.worker.min.mjs`;
 
 interface PdfImporterProps {
   onImportTransactions: (transactions: AddTransactionFormPayload[]) => void;
@@ -230,26 +230,16 @@ const PdfImporter: React.FC<PdfImporterProps> = ({ onImportTransactions, incomeC
   const extractTransactionsWithGemini = async (text: string, userQuery: string) => {
     setLoadingMessage('Analyzing PDF with AI...');
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `You are an expert financial data extraction AI from bank statements.
+        contents: `You are an expert financial data extraction AI. You excel at parsing unstructured text from bank statements and credit card bills into structured columns.
 
-**Primary Goal:** Extract transaction data into a JSON array based on the user's request.
+**Primary Goal:** Extract transaction data into a JSON array from the text below, specifically addressing: "${userQuery}"
 
-**User's Request:** "${userQuery}"
-
-**CRITICAL RULE: Date Extraction**
-- You MUST extract the specific date for EACH transaction line from the document.
-- DO NOT use a general "Statement Date" from the header. Every transaction has its own unique date on its own line.
-- You MUST handle various date formats (e.g., \`DD-Mon-YYYY\`, \`DD/MM/YY\`) and ALWAYS convert them to the strict \`YYYY-MM-DD\` format in your JSON output.
-
-**Output Format:**
-- Return a clean JSON array of transaction objects that match the user's request.
-
-Here is the text from the PDF:
-\n\n ${text}`,
+**Context:**
+${text}`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {

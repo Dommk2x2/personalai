@@ -27,6 +27,7 @@ import {
 import { LOCAL_STORAGE_PROFILE_PICTURE_KEY } from '../constants';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { lightenHexColor } from '../utils/colorUtils';
+import { motion } from 'motion/react';
 
 interface TransactionDetailModalProps {
   isOpen: boolean;
@@ -65,6 +66,31 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   const [profilePicture] = useLocalStorage<string | null>(LOCAL_STORAGE_PROFILE_PICTURE_KEY, null);
   const [pdfStyle, setPdfStyle] = useState<PdfTableTheme>('striped');
 
+  const [activeTab, setActiveTab] = useState<'transactions' | 'reminders' | 'summary'>('transactions');
+
+  const checkHasReminders = (date: string, schedules: SavedAmortizationSchedule[], rechargePlans: RechargePlan[], subscriptionPlans: SubscriptionPlan[]) => {
+      // EMIs
+      let hasEmis = false;
+      schedules.forEach(s => {
+          if (s.isDeleted) return;
+          s.schedule.forEach(entry => {
+              if (entry.paymentDate === date) hasEmis = true;
+          });
+      });
+      if (hasEmis) return true;
+
+      // Recharges/Subscriptions
+      const hasRecharge = rechargePlans.some(p => !p.isDeleted && (p.nextDueDate === date || p.lastRechargeDate === date));
+      if (hasRecharge) return true;
+      
+      const hasSubscription = subscriptionPlans.some(p => !p.isDeleted && (p.nextDueDate === date || p.lastPaymentDate === date));
+      if (hasSubscription) return true;
+
+      return false;
+  };
+
+  const hasInitializedRef = React.useRef(false);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -73,22 +99,31 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
     };
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
+      
+      if (!hasInitializedRef.current) {
+          // Logic: prioritize reminders, otherwise transactions
+          const hasReminders = checkHasReminders(date, schedules, rechargePlans, subscriptionPlans);
+          setActiveTab(hasReminders ? 'reminders' : 'transactions');
+          hasInitializedRef.current = true;
+      }
+    } else {
+        hasInitializedRef.current = false;
     }
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, date, schedules, rechargePlans, subscriptionPlans]);
 
   const formattedDate = useMemo(() => {
     return new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-    });
+    }).toUpperCase();
   }, [date]);
   
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
   };
   
   const handleDownloadBill = () => {
@@ -291,194 +326,270 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-60 dark:bg-opacity-75 flex items-center justify-center p-4 z-[100] transition-opacity duration-300"
+      className="fixed inset-0 bg-black/60 dark:bg-black/80 flex items-center justify-center p-4 z-[100] transition-opacity duration-300"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="transaction-detail-modal-title"
     >
-      <div
-        className="bg-bg-secondary-themed p-5 sm:p-6 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] transform transition-all duration-300 ease-out scale-95 opacity-0 animate-modalEnter flex flex-col"
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="bg-bg-secondary-themed rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h2 id="transaction-detail-modal-title" className="text-xl font-black text-text-base-themed uppercase tracking-tight">
-              Insights for {formattedDate}
-            </h2>
-            {accountName && <p className="text-sm font-bold text-brand-primary uppercase tracking-widest mt-1">Account: {accountName}</p>}
+        {/* Header Section */}
+        <div className="p-6 pb-2 shrink-0">
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 id="transaction-detail-modal-title" className="text-xl sm:text-2xl font-black text-text-base-themed uppercase tracking-tight">
+                Insights for {formattedDate}
+              </h2>
+              {accountName && (
+                <p className="text-sm font-black text-brand-primary uppercase tracking-widest mt-1">
+                  Account: {accountName}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-xl text-text-muted-themed hover:bg-bg-accent-themed hover:text-text-base-themed transition-all"
+              aria-label="Close details"
+            >
+              <XIcon className="w-6 h-6" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-text-muted-themed hover:bg-bg-accent-themed hover:text-text-base-themed transition-all"
-            aria-label="Close details"
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex border-b border-border-secondary px-6 shrink-0 bg-white/50 dark:bg-black/20 backdrop-blur-sm sticky top-0 z-10">
+          <button 
+            type="button"
+            onClick={() => setActiveTab('transactions')}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-4 px-4 text-xs sm:text-sm font-bold uppercase tracking-widest transition-all relative z-20 ${activeTab === 'transactions' ? 'text-brand-primary' : 'text-text-muted-themed hover:text-text-base-themed'}`}
           >
-            <XIcon className="w-6 h-6" />
+            <BanknotesIcon className="w-4 h-4" />
+            <span>Transactions</span>
+            {activeTab === 'transactions' && (
+              <motion.div 
+                layoutId="detailTab" 
+                className="absolute bottom-0 left-0 right-0 h-1 bg-brand-primary rounded-full pointer-events-none"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+          </button>
+          <button 
+            type="button"
+            onClick={() => setActiveTab('reminders')}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-4 px-4 text-xs sm:text-sm font-bold uppercase tracking-widest transition-all relative z-20 ${activeTab === 'reminders' ? 'text-brand-primary' : 'text-text-muted-themed hover:text-text-base-themed'}`}
+          >
+            <BellIcon className="w-4 h-4" />
+            <span>Reminders</span>
+            {activeTab === 'reminders' && (
+              <motion.div 
+                layoutId="detailTab" 
+                className="absolute bottom-0 left-0 right-0 h-1 bg-brand-primary rounded-full pointer-events-none"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+          </button>
+          <button 
+            type="button"
+            onClick={() => setActiveTab('summary')}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-4 px-4 text-xs sm:text-sm font-bold uppercase tracking-widest transition-all relative z-20 ${activeTab === 'summary' ? 'text-brand-primary' : 'text-text-muted-themed hover:text-text-base-themed'}`}
+          >
+            <ListChecksIcon className="w-4 h-4" />
+            <span>Summary</span>
+            {activeTab === 'summary' && (
+              <motion.div 
+                layoutId="detailTab" 
+                className="absolute bottom-0 left-0 right-0 h-1 bg-brand-primary rounded-full pointer-events-none"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              />
+            )}
           </button>
         </div>
 
-        <div className="flex-grow overflow-y-auto pr-2 space-y-6 custom-scrollbar">
-          {/* Attendance Section */}
-          {attendanceInfo && (
-            <section className="bg-bg-primary-themed p-4 rounded-2xl border border-border-secondary">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-black uppercase tracking-widest text-text-muted-themed flex items-center gap-2">
-                  <CheckCircleIcon className="w-4 h-4 text-brand-primary" />
-                  Attendance Status
-                </h3>
-                <span 
-                  className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider"
-                  style={{ backgroundColor: attendanceInfo.bg, color: attendanceInfo.color }}
-                >
-                  {attendanceInfo.label}
-                </span>
+        <div className="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar">
+          {activeTab === 'transactions' && (
+            <motion.div 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="space-y-4"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xs font-black uppercase tracking-widest text-text-muted-themed">Daily Transactions</h3>
+                <span className="text-[10px] font-black text-brand-primary bg-brand-primary/10 px-2 py-1 rounded-md">{transactions.length} items</span>
               </div>
-              {dayData.attendance?.note && (
-                <p className="text-sm text-text-base-themed mt-2 italic">"{dayData.attendance.note}"</p>
-              )}
-            </section>
-          )}
-
-          {/* Transactions Section */}
-          <section>
-            <h3 className="text-xs font-black uppercase tracking-widest text-text-muted-themed flex items-center gap-2 mb-3">
-              <BanknotesIcon className="w-4 h-4 text-brand-primary" />
-              Transactions ({transactions.length})
-            </h3>
-            {transactions.length > 0 ? (
-              <ul className="grid gap-3">
-                {transactions.map(tx => (
-                  <li key={tx.id} className="p-3 bg-bg-primary-themed rounded-xl border border-border-secondary group hover:border-brand-primary transition-all">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm font-bold text-text-base-themed">{tx.description}</p>
-                        <p className="text-[10px] font-bold text-text-muted-themed uppercase tracking-widest">{tx.category || 'Uncategorized'}</p>
+              {transactions.length > 0 ? (
+                <ul className="grid gap-3">
+                  {transactions.map(tx => (
+                    <li key={tx.id} className="p-4 bg-bg-primary-themed rounded-2xl border border-border-secondary group hover:border-brand-primary transition-all shadow-sm">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm font-bold text-text-base-themed">{tx.description}</p>
+                          <p className="text-[10px] font-bold text-text-muted-themed uppercase tracking-widest">{tx.category || 'Uncategorized'}</p>
+                        </div>
+                        <span
+                          className={`text-sm font-black transition-transform group-hover:scale-110`}
+                          style={{ color: tx.type === 'income' ? currentThemeColors.income : currentThemeColors.expense }}
+                        >
+                          {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                        </span>
                       </div>
-                      <span
-                        className={`text-sm font-black transition-transform group-hover:scale-110`}
-                        style={{ color: tx.type === 'income' ? currentThemeColors.income : currentThemeColors.expense }}
-                      >
-                        {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="p-4 rounded-xl border border-dashed border-border-secondary text-center">
-                <p className="text-xs text-text-muted-themed font-bold uppercase tracking-widest">No financial activity</p>
-              </div>
-            )}
-          </section>
-
-          {/* EMI Section */}
-          {dayData.dayEmis.length > 0 && (
-            <section>
-              <h3 className="text-xs font-black uppercase tracking-widest text-text-muted-themed flex items-center gap-2 mb-3">
-                <CreditCardIcon className="w-4 h-4 text-brand-primary" />
-                EMI Payments
-              </h3>
-              <ul className="grid gap-3">
-                {dayData.dayEmis.map((emi, i) => (
-                  <li key={i} className="p-3 bg-bg-primary-themed rounded-xl border border-border-secondary flex justify-between items-center">
-                    <div>
-                      <p className="text-sm font-bold text-text-base-themed">{emi.loanName}</p>
-                      <span className={`text-[9px] font-black uppercase tracking-widest ${emi.isPaid ? 'text-income' : 'text-brand-primary'}`}>
-                        {emi.isPaid ? 'Paid Successfully' : 'Payment Due'}
-                      </span>
-                    </div>
-                    <p className="text-sm font-black text-text-base-themed">{formatCurrency(emi.amount)}</p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* Todos Section */}
-          {dayData.dayTodos.length > 0 && (
-            <section>
-              <h3 className="text-xs font-black uppercase tracking-widest text-text-muted-themed flex items-center gap-2 mb-3">
-                <ListChecksIcon className="w-4 h-4 text-brand-primary" />
-                Tasks & Todos
-              </h3>
-              <ul className="grid gap-2">
-                {dayData.dayTodos.map(todo => (
-                  <li key={todo.id} className="p-3 bg-bg-primary-themed rounded-xl border border-border-secondary flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${todo.completed ? 'bg-income' : 'bg-brand-secondary'}`} />
-                    <p className={`text-sm ${todo.completed ? 'line-through text-text-muted-themed' : 'text-text-base-themed font-medium'}`}>
-                      {todo.text}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* Reminders Section */}
-          {dayData.dayReminders.length > 0 && (
-            <section>
-              <h3 className="text-xs font-black uppercase tracking-widest text-text-muted-themed flex items-center gap-2 mb-3">
-                <BellIcon className="w-4 h-4 text-amber-500" />
-                Reminders
-              </h3>
-              <ul className="grid gap-3">
-                {dayData.dayReminders.map((rem, i) => (
-                  <li key={i} className="p-3 bg-bg-primary-themed rounded-xl border border-border-secondary flex justify-between items-center">
-                    <div>
-                      <p className="text-sm font-bold text-text-base-themed">{rem.name}</p>
-                      <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest">{rem.type}</p>
-                      {rem.period && <p className="text-[9px] text-text-muted-themed font-bold mt-1">{rem.period}</p>}
-                    </div>
-                    <p className="text-sm font-black text-text-base-themed">{formatCurrency(rem.amount)}</p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {!hasAnyData && (
-             <div className="py-12 text-center">
-                <div className="w-16 h-16 bg-bg-accent-themed rounded-full flex items-center justify-center mx-auto mb-4 opacity-50">
-                    <ClockIcon className="w-8 h-8 text-text-muted-themed" />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="py-12 text-center bg-bg-primary-themed rounded-2xl border border-dashed border-border-secondary">
+                  <div className="w-12 h-12 bg-bg-accent-themed rounded-full flex items-center justify-center mx-auto mb-3">
+                    <BanknotesIcon className="w-6 h-6 text-text-muted-themed" />
+                  </div>
+                  <p className="text-xs text-text-muted-themed font-bold uppercase tracking-widest">No transactions recorded</p>
                 </div>
-                <p className="text-text-muted-themed font-bold uppercase tracking-widest text-sm">No data recorded for this day</p>
-             </div>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'reminders' && (
+            <motion.div 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="space-y-6"
+            >
+              {/* EMI Section */}
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-widest text-text-muted-themed mb-4">EMI Payments</h3>
+                {dayData.dayEmis.length > 0 ? (
+                  <ul className="grid gap-3">
+                    {dayData.dayEmis.map((emi, i) => (
+                      <li key={i} className="p-4 bg-bg-primary-themed rounded-2xl border border-border-secondary flex justify-between items-center shadow-sm">
+                        <div>
+                          <p className="text-sm font-bold text-text-base-themed">{emi.loanName}</p>
+                          <span className={`text-[9px] font-black uppercase tracking-widest ${emi.isPaid ? 'text-income' : 'text-brand-primary'}`}>
+                            {emi.isPaid ? 'Paid Successfully' : 'Payment Due'}
+                          </span>
+                        </div>
+                        <p className="text-sm font-black text-text-base-themed">{formatCurrency(emi.amount)}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <p className="text-xs text-text-muted-themed text-center py-4 bg-bg-primary-themed rounded-xl border border-dashed border-border-secondary font-bold uppercase tracking-widest">No EMIs for today</p>}
+              </div>
+
+              {/* Reminders Section */}
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-widest text-text-muted-themed mb-4">Bills & Renewals</h3>
+                {dayData.dayReminders.length > 0 ? (
+                  <ul className="grid gap-3">
+                    {dayData.dayReminders.map((rem, i) => (
+                      <li key={i} className="p-4 bg-bg-primary-themed rounded-2xl border border-border-secondary flex justify-between items-center shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${rem.type === 'recharge' ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                            <BellIcon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-text-base-themed">{rem.name}</p>
+                            <p className="text-[9px] font-black uppercase tracking-widest opacity-70">{rem.type}</p>
+                            {rem.period && <p className="text-[9px] text-text-muted-themed font-bold mt-1">{rem.period}</p>}
+                          </div>
+                        </div>
+                        <p className="text-sm font-black text-text-base-themed">{formatCurrency(rem.amount)}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <p className="text-xs text-text-muted-themed text-center py-4 bg-bg-primary-themed rounded-xl border border-dashed border-border-secondary font-bold uppercase tracking-widest">No reminders for today</p>}
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'summary' && (
+            <motion.div 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="space-y-6"
+            >
+              {/* Attendance Summary */}
+              <div className="bg-bg-primary-themed p-5 rounded-2xl border border-border-secondary shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-text-muted-themed">Attendance</h3>
+                  {attendanceInfo ? (
+                    <span 
+                      className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider"
+                      style={{ backgroundColor: attendanceInfo.bg, color: attendanceInfo.color }}
+                    >
+                      {attendanceInfo.label}
+                    </span>
+                  ) : <span className="text-[10px] font-black text-text-muted-themed uppercase tracking-widest">No Entry</span>}
+                </div>
+                {dayData.attendance?.note && (
+                  <div className="p-3 bg-bg-accent-themed rounded-xl border border-border-primary">
+                    <p className="text-sm text-text-base-themed italic">"{dayData.attendance.note}"</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Todo List Summary */}
+              <div className="bg-bg-primary-themed p-5 rounded-2xl border border-border-secondary shadow-sm">
+                <h3 className="text-xs font-black uppercase tracking-widest text-text-muted-themed mb-4">Tasks Status</h3>
+                {dayData.dayTodos.length > 0 ? (
+                  <ul className="space-y-3">
+                    {dayData.dayTodos.map(todo => (
+                      <li key={todo.id} className="flex items-center gap-3">
+                        <div className={`w-1.5 h-6 rounded-full ${todo.completed ? 'bg-income' : 'bg-brand-secondary'}`} />
+                        <p className={`text-sm ${todo.completed ? 'line-through text-text-muted-themed' : 'text-text-base-themed font-bold'}`}>
+                          {todo.text}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <p className="text-xs text-text-muted-themed text-center py-4 font-bold uppercase tracking-widest">No tasks for today</p>}
+              </div>
+
+              {/* Financial Snapshot */}
+              {transactions.length > 0 && (
+                <div className="bg-brand-primary/5 p-5 rounded-2xl border border-brand-primary/20 shadow-sm">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-brand-primary mb-4">Financial Flow</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/40 dark:bg-black/20 p-4 rounded-xl backdrop-blur-sm">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-green-600 mb-1">Income</p>
+                      <p className="text-xl font-black text-green-600">{formatCurrency(totalIncome)}</p>
+                    </div>
+                    <div className="bg-white/40 dark:bg-black/20 p-4 rounded-xl backdrop-blur-sm">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-red-600 mb-1">Expense</p>
+                      <p className="text-xl font-black text-red-600">{formatCurrency(totalExpenses)}</p>
+                    </div>
+                    <div className="col-span-2 bg-brand-primary/10 p-4 rounded-xl text-center">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary mb-1">Net Position</p>
+                      <p className="text-2xl font-black" style={{ color: netTotal >= 0 ? currentThemeColors.income : currentThemeColors.expense }}>
+                        {formatCurrency(netTotal)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="mt-8 pt-6 border-t border-border-secondary flex flex-col gap-4">
-          {transactions.length > 0 && (
-            <div className="bg-bg-primary-themed p-4 rounded-2xl flex justify-between items-center">
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-text-muted-themed">Daily Balance</p>
-                <div className="flex gap-4">
-                  <span className="text-xs font-black" style={{ color: currentThemeColors.income }}>In: {formatCurrency(totalIncome)}</span>
-                  <span className="text-xs font-black" style={{ color: currentThemeColors.expense }}>Out: {formatCurrency(totalExpenses)}</span>
-                </div>
-              </div>
-              <div className="text-right">
-                 <p className="text-lg font-black" style={{ color: netTotal >= 0 ? currentThemeColors.income : currentThemeColors.expense }}>
-                   {formatCurrency(netTotal)}
-                 </p>
-              </div>
-            </div>
-          )}
-
+        {/* Sticky Footer */}
+        <div className="p-6 bg-bg-secondary-themed border-t border-border-secondary flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => onAddTransaction(date)}
-              className="flex-1 flex items-center justify-center px-6 py-3.5 bg-brand-primary text-white text-sm font-black uppercase tracking-widest rounded-2xl shadow-lg hover:scale-[1.02] active:scale-95 transition-all"
+              className="flex-1 flex items-center justify-center px-6 py-4 bg-brand-primary text-white text-sm font-black uppercase tracking-widest rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all shadow-brand-primary/20"
             >
-              <PlusIcon className="w-5 h-5 mr-2" />
-              Add Record
+              <PlusIcon className="w-5 h-5 mr-3" />
+              Add Activity
             </button>
             {showDownloadButton && transactions.length > 0 && (
-              <div className="flex gap-2">
+              <div className="flex flex-1 gap-2">
                 <select
                     value={pdfStyle}
                     onChange={(e) => setPdfStyle(e.target.value as PdfTableTheme)}
-                    className="px-2 py-1 text-xs border rounded-xl focus:outline-none"
+                    className="flex-grow px-3 py-4 text-xs font-bold uppercase border rounded-2xl focus:outline-none shadow-sm transition-all text-center"
                     style={{
                         backgroundColor: currentThemeColors.bgPrimary,
                         borderColor: currentThemeColors.borderPrimary,
@@ -492,38 +603,28 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                 </select>
                 <button
                   onClick={handleDownloadBill}
-                  className="flex-1 flex items-center justify-center px-6 py-3.5 bg-cyan-500 text-white text-sm font-black uppercase tracking-widest rounded-2xl shadow-lg hover:scale-[1.02] active:scale-95 transition-all"
+                  className="flex-grow flex items-center justify-center px-6 py-4 bg-cyan-500 text-white text-sm font-black uppercase tracking-widest rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all shadow-cyan-500/20"
                 >
-                  <DownloadIcon className="w-5 h-5 mr-2" />
-                  Export
+                  <DownloadIcon className="w-5 h-5" />
                 </button>
               </div>
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
       <style>{`
-        @keyframes modalEnter {
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-        .animate-modalEnter {
-          animation: modalEnter 0.3s forwards;
-        }
         .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
+          width: 5px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
-          border-radius: 10px;
+          background: #e2e8f0;
+          border-radius: 20px;
         }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #334155;
+          background: #1e293b;
         }
       `}</style>
     </div>
